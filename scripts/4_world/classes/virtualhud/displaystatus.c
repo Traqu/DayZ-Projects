@@ -108,18 +108,20 @@ class VirtualHud
 		int offset = 0;
 		int mask = 0;
 		
-		for (int i = 0; i < NUMBER_OF_ELEMENTS; i++)
+		for (int i = 0; i < NUMBER_OF_ELEMENTS; ++i)
 		{
-			if (  GetElement(i) && !GetElement(i).IsClientOnly() )
+			DisplayElementBase element = GetElement(i);
+			
+			if (element && !element.IsClientOnly() )
 			{
-				if ( (GetElement(i).GetNumberOfBits() + offset) > BIT_INT_SIZE )
+				if ((element.GetNumberOfBits() + offset) > BIT_INT_SIZE)
 				{
 					mask_array.Insert(mask);
 					offset = 0;
 					mask = 0;
 				}
-				mask = mask | (GetElement(i).GetValue() << offset);
-				offset = offset + GetElement(i).GetNumberOfBits();
+				mask = mask | (element.GetValue() << offset);
+				offset = offset + element.GetNumberOfBits();
 			}
 		}
 		mask_array.Insert(mask);
@@ -133,18 +135,20 @@ class VirtualHud
 		
 		for (int i = 0; i < NUMBER_OF_ELEMENTS;i++)
 		{
-			if ( GetElement(i) && !GetElement(i).IsClientOnly() )
+			DisplayElementBase element = GetElement(i);
+			
+			if (element && !element.IsClientOnly())
 			{
 				//Log("entity> " + ToString(GetElement(i)) );
-				if (offset + GetElement(i).GetNumberOfBits() > BIT_INT_SIZE)
+				if (offset + element.GetNumberOfBits() > BIT_INT_SIZE)
 				{
 					maskArrayIndex++;
 					offset = 0;
 				}
 				mask = mask_array.Get(maskArrayIndex);
-				int value = BitToDec( mask, offset, GetElement(i).GetCompareMask() );
-				offset = offset + GetElement(i).GetNumberOfBits();
-				GetElement(i).SetValue( value );
+				int value = BitToDec( mask, offset, element.GetCompareMask() );
+				offset = offset + element.GetNumberOfBits();
+				element.SetValue(value);
 			}
 		}
 	}
@@ -156,7 +160,6 @@ class VirtualHud
 		return value;
 	}
 
-
 	void PrintElements()
 	{
 		for (int i = 0; i < NUMBER_OF_ELEMENTS; i++)
@@ -167,14 +170,22 @@ class VirtualHud
 
 	void SendRPC()
 	{
-		array<int> mask_array = new array<int>;
-		SerializeElements(mask_array);
-		if ( !m_LastSentArray || !AreArraysSame(m_LastSentArray, mask_array)  )
+		PlayerIdentity identity = m_Player.GetIdentity();
+		//! ignored for single player (and clients)
+		if (g_Game.IsMultiplayer())
+		{
+			if (!identity)
+				return;
+		}
+		
+		array<int> maskArray = new array<int>();
+		SerializeElements(maskArray);
+		if (!m_LastSentArray || !AreArraysSame(m_LastSentArray, maskArray))
 		{
 			ScriptRPC rpc = new ScriptRPC();
-			rpc.Write(mask_array);
-			rpc.Send(m_Player, ERPCs.RPC_SYNC_DISPLAY_STATUS, false, m_Player.GetIdentity());
-			m_LastSentArray = mask_array;
+			rpc.Write(maskArray);
+			rpc.Send(m_Player, ERPCs.RPC_SYNC_DISPLAY_STATUS, false, identity);
+			m_LastSentArray = maskArray;
 		}
 	}
 
@@ -196,7 +207,7 @@ class VirtualHud
 		for (int i = 0; i < NUMBER_OF_ELEMENTS;i++)
 		{
 			DisplayElementBase element = GetElement(i);
-			if ( element && element.IsClientOnly() && element.IsValueChanged() )
+			if (element && element.IsClientOnly() && element.IsValueChanged())
 				element.UpdateHUD();
 		}
 	}
@@ -204,10 +215,10 @@ class VirtualHud
 	void UpdateStatus()
 	{
 		//Log("UpdateStatus called for entity: "+ToString(m_Player));
-		for (int i = 0; i < NUMBER_OF_ELEMENTS; i++)
+		for (int i = 0; i < NUMBER_OF_ELEMENTS; ++i)
 		{
 			DisplayElementBase element = GetElement(i);
-			if (  element && !element.IsClientOnly() && element.IsValueChanged() ) 
+			if (element && !element.IsClientOnly() && element.IsValueChanged()) 
 			{
 				element.UpdateHUD();
 			}

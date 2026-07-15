@@ -102,7 +102,8 @@ class MainMenuConsole extends UIScriptedMenu
 		}
 		
 		OnInputDeviceChanged(g_Game.GetInput().GetCurrentInputDevice());
-		
+
+		g_Game.SetLoadState(DayZLoadState.MAIN_MENU_CONTROLLER_SELECT);
 		g_Game.GetContentDLCService().m_OnChange.Insert(OnDLCChange);
 
 		#ifdef PLATFORM_MSSTORE
@@ -111,16 +112,14 @@ class MainMenuConsole extends UIScriptedMenu
 		#endif
 		
 		#ifdef PLATFORM_CONSOLE
-		#ifndef PLATFORM_PS4
-		#ifdef PLATFORM_MSSTORE
-		m_ChangeAccount.Show(false);
-		#else
-		m_ChangeAccount.Show(GetGame().GetInput().IsEnabledMouseAndKeyboard());
-		#endif
-		m_FeedbackQRCode.LoadImageFile(0, "gui/textures/feedback_qr_xbox.edds");
-		#else
-		m_FeedbackQRCode.LoadImageFile(0, "gui/textures/feedback_qr_ps.edds");
-		#endif
+		m_FeedbackQRCode.LoadImageFile(0, "gui/textures/feedback_qr.edds");
+			#ifndef PLATFORM_PS4
+				#ifdef PLATFORM_MSSTORE
+				m_ChangeAccount.Show(false);
+				#else
+				m_ChangeAccount.Show(GetGame().GetInput().IsEnabledMouseAndKeyboard());
+				#endif
+			#endif
 		#endif
 		
 		#ifdef PLATFORM_CONSOLE
@@ -161,6 +160,7 @@ class MainMenuConsole extends UIScriptedMenu
 			m_NewsCarousel.Destroy();
 			m_NewsCarousel = null;
 			m_NewsCarousel = new NewsCarousel(m_NewsCarouselFrame, this);
+			m_NewsCarousel.ShowNewsCarousel(true);
 		}
 		#endif
 	}
