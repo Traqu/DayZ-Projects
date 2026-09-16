@@ -240,6 +240,12 @@ class CfgSlots
         displayName = "#STR_CfgBayonet0";
         ghostIcon = "set:dayz_inventory image:bayonet";
     };
+    class Slot_weaponBayonetLeeEnfield
+    {
+        name = "weaponBayonetLeeEnfield";
+        displayName = "#STR_CfgBayonet0";
+        ghostIcon = "set:dayz_inventory image:bayonet";
+    };
     class Slot_weaponButtstockAK
     {
         name = "weaponButtstockAK";
@@ -655,6 +661,13 @@ class CfgSlots
     class Slot_OakBark
     {
         name = "OakBark";
+        displayName = "";
+        ghostIcon = "set:dayz_inventory image:bark";
+        stackMax = 8;
+    };
+    class Slot_PalmBark
+    {
+        name = "PalmBark";
         displayName = "";
         ghostIcon = "set:dayz_inventory image:bark";
         stackMax = 8;
@@ -2307,6 +2320,146 @@ class CfgSlots
         selection = "att_combinationlock";
         ghostIcon = "set:dayz_inventory image:combolock";
     };
+    class Slot_Att_CombinationLock1_Wood
+    {
+        name = "Att_CombinationLock1_Wood";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock1_wood";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock2_Wood
+    {
+        name = "Att_CombinationLock2_Wood";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock2_wood";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock3_Wood
+    {
+        name = "Att_CombinationLock3_Wood";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock3_wood";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock4_Wood
+    {
+        name = "Att_CombinationLock4_Wood";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock4_wood";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock5_Wood
+    {
+        name = "Att_CombinationLock5_Wood";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock5_wood";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock6_Wood
+    {
+        name = "Att_CombinationLock6_Wood";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock6_wood";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock7_Wood
+    {
+        name = "Att_CombinationLock7_Wood";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock7_wood";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock8_Wood
+    {
+        name = "Att_CombinationLock8_Wood";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock8_wood";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock9_Wood
+    {
+        name = "Att_CombinationLock9_Wood";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock9_wood";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock10_Wood
+    {
+        name = "Att_CombinationLock10_Wood";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock10_wood";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock1_Metal
+    {
+        name = "Att_CombinationLock1_Metal";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock1_metal";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock2_Metal
+    {
+        name = "Att_CombinationLock2_Metal";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock2_metal";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock3_Metal
+    {
+        name = "Att_CombinationLock3_Metal";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock3_metal";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock4_Metal
+    {
+        name = "Att_CombinationLock4_Metal";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock4_metal";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock5_Metal
+    {
+        name = "Att_CombinationLock5_Metal";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock5_metal";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock6_Metal
+    {
+        name = "Att_CombinationLock6_Metal";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock6_metal";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock7_Metal
+    {
+        name = "Att_CombinationLock7_Metal";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock7_metal";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock8_Metal
+    {
+        name = "Att_CombinationLock8_Metal";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock8_metal";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock9_Metal
+    {
+        name = "Att_CombinationLock9_Metal";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock9_metal";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
+    class Slot_Att_CombinationLock10_Metal
+    {
+        name = "Att_CombinationLock10_Metal";
+        displayName = "#STR_CombinationLock0";
+        selection = "att_combinationlock10_metal";
+        ghostIcon = "set:dayz_inventory image:combolock";
+    };
     class Slot_Wall_Barbedwire_1
     {
         name = "Wall_Barbedwire_1";
@@ -2611,5 +2764,434 @@ class CfgSlots
         displayName = "";
         ghosticon = "";
         show = "false";
+    };
+    class Slot_Att_CodeLock
+    {
+        name = "Att_CodeLock";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock1_Wood
+    {
+        name = "Att_CodeLock1_Wood";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock1_wood";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock2_Wood
+    {
+        name = "Att_CodeLock2_Wood";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock2_wood";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock3_Wood
+    {
+        name = "Att_CodeLock3_Wood";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock3_wood";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock4_Wood
+    {
+        name = "Att_CodeLock4_Wood";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock4_wood";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock5_Wood
+    {
+        name = "Att_CodeLock5_Wood";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock5_wood";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock6_Wood
+    {
+        name = "Att_CodeLock6_Wood";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock6_wood";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock7_Wood
+    {
+        name = "Att_CodeLock7_Wood";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock7_wood";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock8_Wood
+    {
+        name = "Att_CodeLock8_Wood";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock8_wood";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock9_Wood
+    {
+        name = "Att_CodeLock9_Wood";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock9_wood";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock10_Wood
+    {
+        name = "Att_CodeLock10_Wood";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock10_wood";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock1_Metal
+    {
+        name = "Att_CodeLock1_Metal";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock1_metal";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock2_Metal
+    {
+        name = "Att_CodeLock2_Metal";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock2_metal";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock3_Metal
+    {
+        name = "Att_CodeLock3_Metal";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock3_metal";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock4_Metal
+    {
+        name = "Att_CodeLock4_Metal";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock4_metal";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock5_Metal
+    {
+        name = "Att_CodeLock5_Metal";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock5_metal";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock6_Metal
+    {
+        name = "Att_CodeLock6_Metal";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock6_metal";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock7_Metal
+    {
+        name = "Att_CodeLock7_Metal";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock7_metal";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock8_Metal
+    {
+        name = "Att_CodeLock8_Metal";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock8_metal";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock9_Metal
+    {
+        name = "Att_CodeLock9_Metal";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock9_metal";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_Att_CodeLock10_Metal
+    {
+        name = "Att_CodeLock10_Metal";
+        displayName = "#STR_CodeLock0";
+        selection = "att_codelock10_metal";
+        ghostIcon = "set:dayz_inventory image:digitallock";
+    };
+    class Slot_RB_LvL1_Log
+    {
+        name = "RB_LvL1_Log";
+        displayName = "#STR_CfgWoodenLogs0";
+        selection = "RB_LvL1_Log";
+        ghosticon = "set:dayz_inventory image:woodenlog";
+        stackMax = 15;
+    };
+    class Slot_RB_LvL1_Plank
+    {
+        name = "RB_LvL1_Plank";
+        displayName = "#STR_CfgPlanks0";
+        selection = "RB_LvL1_Plank";
+        ghosticon = "set:dayz_inventory image:planks";
+        stackMax = 100;
+    };
+    class Slot_RB_LvL1_Nail
+    {
+        name = "RB_LvL1_Nail";
+        displayName = "#STR_CfgNails0";
+        selection = "RB_LvL1_Nail";
+        ghosticon = "set:dayz_inventory image:nails";
+        stackMax = 300;
+    };
+    class Slot_RB_LvL1_MetalSheet
+    {
+        name = "RB_LvL1_MetalSheet";
+        displayName = "#STR_CfgMetalPlate0";
+        selection = "RB_LvL1_MetalSheet";
+        ghosticon = "set:dayz_inventory image:plates";
+        stackMax = 20;
+    };
+    class Slot_RB_LvL1_Brick
+    {
+        name = "RB_LvL1_Brick";
+        displayName = "#STR_CfgVehicles_CommonBrick0";
+        selection = "RB_LvL1_Brick";
+        ghosticon = "set:dayz_inventory image:bricks";
+        stackMax = 100;
+    };
+    class Slot_RB_LvL1_MetalWire
+    {
+        name = "RB_LvL1_MetalWire";
+        displayName = "#STR_CfgMetalWire0";
+        selection = "RB_LvL1_MetalWire";
+        ghostIcon = "set:dayz_inventory image:metalwire";
+        stackMax = 10;
+    };
+    class Slot_RB_LvL1_MortarMix
+    {
+        name = "RB_LvL1_MortarMix";
+        displayName = "#STR_CfgVehicles_MortarMix0";
+        selection = "RB_LvL1_MortarMix";
+        ghostIcon = "set:dayz_inventory_additional image:mortarmix";
+        stackMax = 10;
+    };
+    class Slot_RB_LvL2_Log
+    {
+        name = "RB_LvL2_Log";
+        displayName = "#STR_CfgWoodenLogs0";
+        selection = "RB_LvL2_Log";
+        ghosticon = "set:dayz_inventory image:woodenlog";
+        stackMax = 15;
+    };
+    class Slot_RB_LvL2_Plank
+    {
+        name = "RB_LvL2_Plank";
+        displayName = "#STR_CfgPlanks0";
+        selection = "RB_LvL2_Plank";
+        ghosticon = "set:dayz_inventory image:planks";
+        stackMax = 100;
+    };
+    class Slot_RB_LvL2_Nail
+    {
+        name = "RB_LvL2_Nail";
+        displayName = "#STR_CfgNails0";
+        selection = "RB_LvL2_Nail";
+        ghosticon = "set:dayz_inventory image:nails";
+        stackMax = 300;
+    };
+    class Slot_RB_LvL2_MetalSheet
+    {
+        name = "RB_LvL2_MetalSheet";
+        displayName = "#STR_CfgMetalPlate0";
+        selection = "RB_LvL2_MetalSheet";
+        ghosticon = "set:dayz_inventory image:plates";
+        stackMax = 20;
+    };
+    class Slot_RB_LvL2_Brick
+    {
+        name = "RB_LvL2_Brick";
+        displayName = "#STR_CfgVehicles_CommonBrick0";
+        selection = "RB_LvL2_Brick";
+        ghosticon = "set:dayz_inventory image:bricks";
+        stackMax = 100;
+    };
+    class Slot_RB_LvL2_MetalWire
+    {
+        name = "RB_LvL2_MetalWire";
+        displayName = "#STR_CfgMetalWire0";
+        selection = "RB_LvL2_MetalWire";
+        ghostIcon = "set:dayz_inventory image:metalwire";
+        stackMax = 10;
+    };
+    class Slot_RB_LvL2_MortarMix
+    {
+        name = "RB_LvL2_MortarMix";
+        displayName = "#STR_CfgVehicles_MortarMix0";
+        selection = "RB_LvL2_MortarMix";
+        ghostIcon = "set:dayz_inventory_additional image:mortarmix";
+        stackMax = 10;
+    };
+    class Slot_RB_LvL3_Log
+    {
+        name = "RB_LvL3_Log";
+        displayName = "#STR_CfgWoodenLogs0";
+        selection = "RB_LvL3_Log";
+        ghosticon = "set:dayz_inventory image:woodenlog";
+        stackMax = 15;
+    };
+    class Slot_RB_LvL3_Plank
+    {
+        name = "RB_LvL3_Plank";
+        displayName = "#STR_CfgPlanks0";
+        selection = "RB_LvL3_Plank";
+        ghosticon = "set:dayz_inventory image:planks";
+        stackMax = 100;
+    };
+    class Slot_RB_LvL3_Nail
+    {
+        name = "RB_LvL3_Nail";
+        displayName = "#STR_CfgNails0";
+        selection = "RB_LvL3_Nail";
+        ghosticon = "set:dayz_inventory image:nails";
+        stackMax = 300;
+    };
+    class Slot_RB_LvL3_MetalSheet
+    {
+        name = "RB_LvL3_MetalSheet";
+        displayName = "#STR_CfgMetalPlate0";
+        selection = "RB_LvL3_MetalSheet";
+        ghosticon = "set:dayz_inventory image:plates";
+        stackMax = 20;
+    };
+    class Slot_RB_LvL3_Brick
+    {
+        name = "RB_LvL3_Brick";
+        displayName = "#STR_CfgVehicles_CommonBrick0";
+        selection = "RB_LvL3_Brick";
+        ghosticon = "set:dayz_inventory image:bricks";
+        stackMax = 100;
+    };
+    class Slot_RB_LvL3_MetalWire
+    {
+        name = "RB_LvL3_MetalWire";
+        displayName = "#STR_CfgMetalWire0";
+        selection = "RB_LvL3_MetalWire";
+        ghostIcon = "set:dayz_inventory image:metalwire";
+        stackMax = 10;
+    };
+    class Slot_RB_LvL3_MortarMix
+    {
+        name = "RB_LvL3_MortarMix";
+        displayName = "#STR_CfgVehicles_MortarMix0";
+        selection = "RB_LvL3_MortarMix";
+        ghostIcon = "set:dayz_inventory_additional image:mortarmix";
+        stackMax = 10;
+    };
+    class Slot_RB_LvL1_Rope
+    {
+        name = "RB_LvL1_Rope";
+        displayName = "#STR_CfgRope0";
+        selection = "RB_LvL1_Rope";
+        ghosticon = "set:dayz_inventory image:rope";
+        stackMax = 6;
+    };
+    class Slot_RB_LvL1_Stick
+    {
+        name = "RB_LvL1_Stick";
+        displayName = "#STR_CfgWoodenStick0";
+        selection = "RB_LvL1_Stick";
+        ghosticon = "set:dayz_inventory image:woodenstick";
+        stackMax = 50;
+    };
+    class Slot_RB_LvL2_Rope
+    {
+        name = "RB_LvL2_Rope";
+        displayName = "#STR_CfgRope0";
+        selection = "RB_LvL2_Rope";
+        ghosticon = "set:dayz_inventory image:rope";
+        stackMax = 6;
+    };
+    class Slot_RB_LvL2_Stick
+    {
+        name = "RB_LvL2_Stick";
+        displayName = "#STR_CfgWoodenStick0";
+        selection = "RB_LvL2_Stick";
+        ghosticon = "set:dayz_inventory image:woodenstick";
+        stackMax = 50;
+    };
+    class Slot_NBCBag
+    {
+        name = "NBCBag";
+        displayName = "#STR_CfgVehicles_NBCPack_Colorbase0";
+        ghostIcon = "set:dayz_inventory image:back";
+    };
+    class Slot_NBCHead
+    {
+        name = "NBCHead";
+        displayName = "#STR_CfgVehicles_nbchoodbase0";
+        ghostIcon = "set:dayz_inventory image:headgear";
+    };
+    class Slot_NBCTop
+    {
+        name = "NBCTop";
+        displayName = "#STR_CfgVehicles_nbcjacketbase0";
+        ghostIcon = "set:dayz_inventory image:body";
+    };
+    class Slot_NBCGloves
+    {
+        name = "NBCGloves";
+        displayName = "#STR_CfgVehicles_nbcglovesbase0";
+        ghostIcon = "set:dayz_inventory image:gloves";
+    };
+    class Slot_NBCPants
+    {
+        name = "NBCPants";
+        displayName = "#STR_CfgVehicles_nbcpantsbase0";
+        ghostIcon = "set:dayz_inventory image:legs";
+    };
+    class Slot_NBCBoots
+    {
+        name = "NBCBoots";
+        displayName = "#STR_CfgVehicles_nbcbootsbase0";
+        ghostIcon = "set:dayz_inventory image:feet";
+    };
+    class Slot_Motorbike_01_Wheel_1
+    {
+        name = "Motorbike_01_Wheel_1";
+        displayName = "#STR_CfgWheel0";
+        selection = "wheel_1";
+        ghostIcon = "set:dayz_inventory_additional image:motorcycle_front_wheel";
+    };
+    class Slot_Motorbike_01_Wheel_2
+    {
+        name = "Motorbike_01_Wheel_2";
+        displayName = "#STR_CfgWheel0";
+        selection = "wheel_2";
+        ghostIcon = "set:dayz_inventory_additional image:motorcycle_back_wheel";
+    };
+    class Slot_Motorbike_02_Wheel_1
+    {
+        name = "Motorbike_02_Wheel_1";
+        displayName = "#STR_CfgWheel0";
+        selection = "wheel_1";
+        ghostIcon = "set:dayz_inventory_additional image:motorcycle_front_wheel";
+    };
+    class Slot_Motorbike_02_Wheel_2
+    {
+        name = "Motorbike_02_Wheel_2";
+        displayName = "#STR_CfgWheel0";
+        selection = "wheel_2";
+        ghostIcon = "set:dayz_inventory_additional image:motorcycle_back_wheel";
+    };
+    class Slot_Motorbike_02_ShieldFront
+    {
+        name = "Motorbike_02_ShieldFront";
+        displayName = "Windshield";
+        ghostIcon = "set:dayz_inventory_additional image:motorcycle_front";
+    };
+    class Slot_Motorbike_02_ShieldLeft
+    {
+        name = "Motorbike_02_ShieldLeft";
+        displayName = "Shield Left";
+        ghostIcon = "set:dayz_inventory_additional image:motorcycle_left";
+    };
+    class Slot_Motorbike_02_ShieldRight
+    {
+        name = "Motorbike_02_ShieldRight";
+        displayName = "Shield Right";
+        ghostIcon = "set:dayz_inventory_additional image:motorcycle_right";
     };
 };
