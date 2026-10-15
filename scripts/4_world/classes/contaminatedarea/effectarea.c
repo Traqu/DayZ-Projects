@@ -11,8 +11,7 @@ enum EEffectAreaType
 {
 	UNDEFINED	= 1,
 	HOT_SPRING 	= 2,
-	VOLCANIC 	= 4,
-	OIL_PIT		= 8
+	VOLCANIC 	= 4
 }
 
 // Class used for parameter transfer, all of the params are shadows of EffectArea member variables
@@ -188,9 +187,9 @@ class EffectArea : House
 	
 		
 	// Through this we will evaluate the resize of particles
-	override void OnCEIterate(float currentTime, float elapsedTime)
+	override void OnCEUpdate()
 	{
-		super.OnCEIterate(currentTime, elapsedTime);
+		super.OnCEUpdate();
 		Tick();
 	}
 	
@@ -411,10 +410,7 @@ class EffectArea : House
 	
 	protected void SpawnParticles(ParticlePropertiesArray props, vector centerPos, vector partPos, inout int count)
 	{
-		float roadY = g_Game.SurfaceRoadY(partPos[0], partPos[2]);	// Snap particles to ground
-		
-		if (partPos[1] > roadY)
-			partPos[1] = roadY;
+		partPos[1] = g_Game.SurfaceY(partPos[0], partPos[2]);	// Snap particles to ground
 		
 		// We also populate vertically, layer 0 will be snapped to ground, subsequent layers will see particles floating by m_VerticalOffset
 		for (int layer = 0; layer <= m_VerticalLayers; ++layer)

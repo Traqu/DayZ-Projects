@@ -448,7 +448,14 @@ class EmoteSurrender extends EmoteBase
 	
 	override bool EmoteStartOverride(typename callbacktype, int id, int mask, bool fullbody)
 	{
-		m_Player.SetSurrenderState(!m_Player.IsSurrendered());
+		bool surrenderTargetState = !m_Player.GetEmoteManager().m_IsSurrendered;
+		if (!surrenderTargetState && m_Player.GetItemInHands())
+		{
+			m_Player.GetItemInHands().DeleteSafe();
+		}
+		
+		m_Player.GetEmoteManager().PlaySurrenderInOut(surrenderTargetState);
+		
 		return true;
 	}
 }

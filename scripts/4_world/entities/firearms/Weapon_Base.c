@@ -182,7 +182,7 @@ class Weapon_Base extends Weapon
 		if (WeightDebug.m_VerbosityFlags & WeightDebugType.RECALC_FORCED)
 		{
 			WeightDebugData data1 = WeightDebug.GetWeightDebug(this);
-			data1.SetCalcDetails("TWPN: " + EntityAIType.Cast(GetEntityType()).m_ConfigWeight+"(item weight) + " + baseWeight +"(contents weight)" );
+			data1.SetCalcDetails("TWPN: " + m_ConfigWeight+"(item weight) + " + baseWeight +"(contents weight)" );
 		}
 		#endif
 		for (int muzzleIndex = 0; muzzleIndex < muzzleCount; muzzleIndex++)
@@ -338,15 +338,13 @@ class Weapon_Base extends Weapon
 	}
 	int GetWeaponAnimState() { return m_weaponAnimState; }
 
-	override void EEFired(int muzzleType, int mode, string ammoType)
+	void EEFired(int muzzleType, int mode, string ammoType)
 	{		
-		auto player = PlayerBase.Cast(GetHierarchyRootPlayer());
-
-		if ( !g_Game.IsHeadlessOrDedicatedServer() )
+		if ( !g_Game.IsDedicatedServer() )
 		{
-			ItemBase suppressor = GetAttachedSuppressor();	
-					
-			// Muzzle flash & overheating effects	
+			ItemBase suppressor = GetAttachedSuppressor();
+			
+			// Muzzle flash & overheating effects
 			ItemBase.PlayFireParticles(this, muzzleType, ammoType, this, suppressor, "CfgWeapons" );
 			IncreaseOverheating(this, ammoType, this, suppressor, "CfgWeapons");
 			
@@ -355,7 +353,17 @@ class Weapon_Base extends Weapon
 				ItemBase.PlayFireParticles(this, muzzleType, ammoType, suppressor, NULL, "CfgVehicles" );
 				suppressor.IncreaseOverheating(this, ammoType, this, suppressor, "CfgVehicles");
 			}
-		}	
+		}
+		
+		//obsolete, replaced by C++ solution!
+/*
+		if (g_Game.IsServer())
+		{
+			AddHealth("","Health",-m_DmgPerShot); //damages weapon
+			if (suppressor)
+				suppressor.AddHealth("","Health",-m_DmgPerShot); //damages suppressor; TODO add suppressor damage coeficient/parameter (?) to suppressors/weapons (?)
+		}
+*/		
 		//JamCheck(muzzleType);
 		
 		#ifdef DIAG_DEVELOPER
@@ -1047,7 +1055,7 @@ class Weapon_Base extends Weapon
 	
 	void OnFireModeChange(int fireMode)
 	{
-		if ( !g_Game.IsHeadlessOrDedicatedServer() )
+		if ( !g_Game.IsDedicatedServer() )
 		{
 			EffectSound eff;
 			
@@ -1117,8 +1125,6 @@ class Weapon_Base extends Weapon
 		super.EEItemDetached(item, slot_name);
 
 		GetPropertyModifierObject().UpdateModifiers();
-
-		if(item.IsMagazine()) {ValidateAndRepair();}
 	}
 	
 	override void EEItemLocationChanged(notnull InventoryLocation oldLoc, notnull InventoryLocation newLoc)
@@ -2012,8 +2018,7 @@ class Weapon_Base extends Weapon
 		
 		if (attachment)
 		{
-			ItemBaseType itemBaseType = ItemBaseType.Cast(attachment.GetEntityType());
-			return Math.Max(itemBaseType.m_ItemModelLength + itemBaseType.m_ItemAttachOffset, 0);
+			return Math.Max(attachment.m_ItemModelLength + attachment.m_ItemAttachOffset, 0);
 		}
 		else
 		{

@@ -8,7 +8,7 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 	protected static int 						ITEMS_IN_PRESET_SELECTED_ROW;
 	protected static float 						DRAW_DISTANCE = 1000;
 	protected static bool 						CLEAR_IVN;
-	static int 									OBJECT_SCOPE = 2;
+	protected static int 						m_ObjectsScope = 2;
 	protected static string 					m_LastSelectedObject;
 	protected static int						m_SelectedObjectIsPreset = -1;
 	protected static ref array<Shape>			m_DebugShapes = new array<Shape>;
@@ -74,10 +74,9 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 	protected ItemPreviewWidget 		m_ItemPreviewWidget;
 	protected ImageWidget				m_FilterOrderImage;
 	
-	override void InitializeTab(Widget root, ScriptConsole console, Widget button, ScriptConsoleTabBase parent = null)
+	
+	void ScriptConsoleItemsTab(Widget root, ScriptConsole console, Widget button, ScriptConsoleTabBase parent = null)
 	{
-		super.InitializeTab(root, console, button, parent);
-		
 		m_Developer					= PluginDeveloper.Cast(GetPlugin(PluginDeveloper));
 		
 		m_DrawInWorld = ButtonWidget.Cast(root.FindAnyWidget("ButtonDrawItem"));
@@ -212,7 +211,7 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 		}
 		
 		
-		if (OBJECT_SCOPE == 1)
+		if (m_ObjectsScope == 1)
 			m_ShowProtected.SetChecked(true);
 		else
 			m_ShowProtected.SetChecked(false);
@@ -279,7 +278,7 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 				RenderPresetItems();
 		}
 		
-		if (OBJECT_SCOPE == 1)
+		if (m_ObjectsScope == 1)
 			m_ShowProtected.SetChecked(true);
 		else
 			m_ShowProtected.SetChecked(false);
@@ -710,10 +709,12 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 	
 	void AddItemToPreset()
 	{
-		string itemName = GetCurrentObjectName();
-		if (itemName != string.Empty && GetCurrentPresetIndex() != -1)
+		int selected_row_index = m_ObjectsTextListbox.GetSelectedRow();
+		if (selected_row_index != -1 && GetCurrentPresetIndex() != -1)
 		{
-			m_ConfigDebugProfile.ItemAddToPreset(GetCurrentPresetName(), itemName);
+			string item_name;
+			m_ObjectsTextListbox.GetItemText(selected_row_index, 0, item_name);
+			m_ConfigDebugProfile.ItemAddToPreset(GetCurrentPresetName(), item_name);
 			RenderPresetItems();
 		}
 	}
@@ -731,15 +732,17 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 		HideItemButtons();
 		
 	}
-	
-	protected void AddItemToClipboard()
+/*
+	void AddItemToClipboard(TextListboxWidget text_listbox_widget)
 	{
-		string itemName = GetCurrentObjectName();
-		if (itemName != string.Empty)
+		int selected_row_index = text_listbox_widget.GetSelectedRow();
+		if (selected_row_index != -1)
 		{
-			g_Game.CopyToClipboard(itemName);
+			string item_name;
+			text_listbox_widget.GetItemText(selected_row_index, 0, item_name);
+			g_Game.CopyToClipboard(item_name);
 		}
-	}
+	}*/
 
 	void RemoveItemFromPreset()
 	{
@@ -781,15 +784,7 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 		{
 			string item_name;
 			m_ObjectsTextListbox.GetItemText(selected_row_index, 0, item_name);
-			
-			array<string> tokens = new array<string>();
-			int index = item_name.IndexOf(" - [");
-			if (index > -1)
-			{
-				item_name.Split(" - [", tokens);
-			}
-			
-			return tokens[0];
+			return item_name;
 		}
 		return "";
 	}
@@ -936,7 +931,7 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 	}
 	
 	
-	void ChangeFilter(TextListboxWidget widget, MultilineEditBoxWidget filterWidget, int categoryMask = -1, bool ignoreScope = false)
+	void ChangeFilter(TStringArray classes, TextListboxWidget widget, MultilineEditBoxWidget filterWidget, int categoryMask = -1, bool ignoreScope = false)
 	{
 		widget.ClearItems();
 		
@@ -952,60 +947,63 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 
 		TStringArray itemsArray = TStringArray();
 		
-		map<string, ref ScriptConsoleItem> items = m_Developer.GetItems();
-		foreach (string itemName, ScriptConsoleItem itemData : items)
+		for (int i = 0; i < classes.Count(); i++)
 		{
-			string displayName = "NO DISPLAY NAME";
-			if (itemData.m_DisplayName != string.Empty)
-				displayName = itemData.m_DisplayName;
-			
-			int scope = itemData.m_Scope;
-			if (scope >= OBJECT_SCOPE || ignoreScope)
-			{
-				int categoryBit = itemData.m_CategoryMask;
-				categoryBit = (1 << categoryBit);
-				
-				bool display = false;
-				bool matchWithDisplayName = false;
-				int color = 0;
-				if (categoryBit & categoryMask)
-				{
-					display = true;
-				}
-				else if ((!m_ConfigDebugProfile.GetMergeType() || categoryMask == 0) && filters.Count() > 0)
-				{
-					string childNameLower = itemName;
-					childNameLower.ToLower();
-					string displayNameLower = displayName;
-					displayNameLower.ToLower();
-					
-					foreach (int indx, string filter : filters)
-					{
-						if (childNameLower.Contains(filter) || displayNameLower.Contains(filter))
-						{
-							display = false;
-							color = filterColors.Get(indx);
-							TStringArray arr = itemsByFilters.Get(filter);
-							if (!arr)
-							{
-								arr = new TStringArray();
-								itemsByFilters.Set(filter, arr);
-							}
+			string config_path = classes.Get(i);
 
-							arr.Insert(itemName + " - [" + displayName + "]");
-							itemsAndColors.Insert(itemName + " - [" + displayName + "]",color);
-							break;
+			int objects_count = g_Game.ConfigGetChildrenCount(config_path);
+			for (int j = 0; j < objects_count; j++)
+			{
+				string child_name;
+				
+				g_Game.ConfigGetChildName(config_path, j, child_name);
+
+				int scope = g_Game.ConfigGetInt(config_path + " " + child_name + " scope");
+				
+				if (scope >= m_ObjectsScope || ignoreScope)
+				{
+					int category_bit = g_Game.ConfigGetInt(config_path + " " + child_name + " debug_ItemCategory") - 1;
+					category_bit = (1 << category_bit);
+					
+					bool display = false;
+					int color = 0;
+					if (category_bit & categoryMask)
+					{
+						display = true;
+					}
+					else if ((!m_ConfigDebugProfile.GetMergeType() || categoryMask == 0) && filters.Count() > 0)
+					{
+						string child_name_lower = child_name;
+						child_name_lower.ToLower();
+						
+						foreach (int indx, string filter:filters)
+						{
+							if (child_name_lower.Contains(filter))
+							{
+								display = false;
+								color = filterColors.Get(indx);
+								TStringArray arr = itemsByFilters.Get(filter);
+								if (!arr)
+								{
+									arr = new TStringArray();
+									itemsByFilters.Set(filter, arr);
+								}
+								arr.Insert(child_name);
+								itemsAndColors.Insert(child_name,color);
+								break;
+							}
 						}
 					}
-				}
-				else if (categoryMask == 0)
-				{
-					display = true;
-				}
+					else if (categoryMask == 0)
+					{
+						display = true;
+					}
 
-				if (display)
-				{
-					itemsArray.Insert(itemName + " - [" + displayName + "]");
+					if (display)
+					{
+						itemsArray.Insert(child_name);
+						
+					}
 				}
 			}
 		}
@@ -1013,7 +1011,7 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 		if (itemsArray)
 		{
 			itemsArray.Sort();
-			foreach (string it : itemsArray)
+			foreach (string it:itemsArray)
 			{
 				widget.AddItem(it, NULL, 0);
 			}
@@ -1024,7 +1022,7 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 			if (m_FilterOrderReversed)
 				filters.Invert();
 			
-			foreach (string f : filters)
+			foreach (string f:filters)
 			{
 				TStringArray arr2 = itemsByFilters.Get(f);
 				if (arr2)
@@ -1042,7 +1040,10 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 				}
 			}
 		}
+		
+		
 	}
+	
 	
 	void SetFilterOrder(bool reversed)
 	{
@@ -1065,11 +1066,11 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 		{
 			if (m_ShowProtected.IsChecked())
 			{
-				OBJECT_SCOPE = 1;	
+				m_ObjectsScope = 1;	
 			}
 			else
 			{
-				OBJECT_SCOPE = 2;
+				m_ObjectsScope = 2;
 			}
 			ChangeFilterItems(true);
 			return true;
@@ -1378,7 +1379,7 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 		}
 		else if (w == m_ItemNameCopy)
 		{
-			AddItemToClipboard();
+			AddItemToClipboard(m_ObjectsTextListbox);
 			return true;
 		}
 		else if (w == m_PresetRemoveItemButton)
@@ -1543,10 +1544,10 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 		SetTextSpawnButton(m_SpawnInHands, m_IsShiftDown);
 	}
 	
-	/*TStringArray GetItemsClasses()
+	TStringArray GetItemsClasses()
 	{
 		return {CFG_VEHICLESPATH, CFG_WEAPONSPATH, CFG_MAGAZINESPATH, CFG_AMMO};
-	}*/
+	}
 	
 	protected string PreprocessFilterText(MultilineEditBoxWidget w)
 	{
@@ -1571,7 +1572,7 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 		string txt = m_ConfigDebugProfile.GetItemSearch();
 
 		m_ConfigDebugProfile.SetItemSearch(widgetText);
-		ChangeFilter(m_ObjectsTextListbox, m_ObjectFilter, m_CategoryMask);
+		ChangeFilter(GetItemsClasses(), m_ObjectsTextListbox,m_ObjectFilter, m_CategoryMask);
 	}
 	
 	private bool ListItemRelatedActions()
@@ -1661,10 +1662,5 @@ class ScriptConsoleItemsTab : ScriptConsoleTabBase
 		infoDialog.SetContent(message);
 
 		return true;
-	}
-	
-	override void OnSelected()
-	{
-		SetFocus(m_ObjectsTextListbox);
 	}
 }

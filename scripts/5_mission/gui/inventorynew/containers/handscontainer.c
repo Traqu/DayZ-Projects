@@ -1307,7 +1307,7 @@ class HandsContainer: Container
 			Inventory.GetInstance().UpdateConsoleToolbar();
 		}
 		
-		if( item.GetInventory().GetCargo() && m_Entity.CanDisplayAttachmentCargo(item))
+		if( item.GetInventory().GetCargo() )
 		{
 			cont = new CargoContainer( this, true );
 			sort = (m_AttachmentSlotsSorted.Find( slot_id ) * 2) + SORT_CARGO_NEXT_OFFSET; //m_AttachmentSlotsSorted.Find( slot_id ) + 50

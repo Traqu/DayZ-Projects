@@ -29,7 +29,6 @@ class CraftFeathers extends RecipeBase
 		InsertIngredient(0,"StoneKnife");
 		InsertIngredient(0,"Cleaver");
 		InsertIngredient(0,"CombatKnife");
-		InsertIngredient(0,"Jambiya");
 		InsertIngredient(0,"HuntingKnife");
 		InsertIngredient(0,"KukriKnife");
 		InsertIngredient(0,"FangeKnife");
@@ -51,11 +50,7 @@ class CraftFeathers extends RecipeBase
 		InsertIngredient(0,"Shovel");
 		InsertIngredient(0,"FieldShovel");
 		InsertIngredient(0,"BoneKnife");
-		InsertIngredient(0,"Iceaxe");
-		InsertIngredient(0,"Scimitar");		
-		InsertIngredient(0,"DonerKnife");	
-		InsertIngredient(0,"BrickTrowel");
-		InsertIngredient(1,"Akinaka");
+		InsertIngredient(0,"Iceaxe");	
 	
 		m_IngredientAddHealth[0]			= -2;				// 0 = do nothing
 		m_IngredientSetHealth[0]			= -1;				// -1 = do nothing

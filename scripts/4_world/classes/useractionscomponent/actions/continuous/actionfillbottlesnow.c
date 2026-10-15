@@ -1,8 +1,8 @@
-class ActionFillBottleSnow: ActionObtainLiquidBase
+class ActionFillBottleSnow: ActionFillBottleBase
 {
 	void ActionFillBottleSnow()
 	{
-		m_CallbackClass		= ActionObtainLiquidBaseCB;
+		m_CallbackClass		= ActionFillBottleBaseCB;
 		m_CommandUID 		= DayZPlayerConstants.CMD_ACTIONFB_FILLING_CONTAINER_SNOW;
 		m_FullBody 			= true;
 		m_StanceMask 		= DayZPlayerConstants.STANCEMASK_CROUCH | DayZPlayerConstants.STANCEMASK_ERECT;

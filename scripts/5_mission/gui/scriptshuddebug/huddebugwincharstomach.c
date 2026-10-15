@@ -85,9 +85,9 @@ class HudDebugWinCharStomach extends HudDebugWinBase
 	}
 
 
-	override void Update(float timeslice)
+	override void Update()
 	{
-		super.Update(timeslice);
+		super.Update();
 		
 		//Print("Update()");
 		

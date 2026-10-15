@@ -149,8 +149,10 @@ class AgentBase : MessageReceiverBase
 	}
 
 	
+	//! DEPRECATED
+	//!
+
 	//! should this agent grow based on invasibility even during antibiotics attack
-	[Obsolete("replaced by GrowDuringMedicalDrugsAttack")]
 	bool GrowDuringAntibioticsAttack(PlayerBase player)
 	{
 		return true;

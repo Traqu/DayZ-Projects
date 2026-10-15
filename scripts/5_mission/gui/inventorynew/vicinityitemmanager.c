@@ -192,8 +192,9 @@ class VicinityItemManager
 			return true;
 		if (entity.IsHologram())
 			return true;
-		
-		if (!entity.IsDetectableByVicinityCone())
+
+		ItemBase item;
+		if (!Class.CastTo(item, object_in_cone) && !object_in_cone.IsTransport() && !PASBroadcaster.Cast(object_in_cone))
 			return true;
 
 		return false;
@@ -201,7 +202,7 @@ class VicinityItemManager
 	
 	bool CanIgnoreDistanceCheck(EntityAI entity_ai)
 	{
-		return MiscGameplayFunctions.CanIgnoreDistanceCheck(entity_ai) || entity_ai.IsBuilding(); //TODO: IsBuilding will be replaced by 'CanUseConstruction', already in MiscGameplayFunctions fn
+		return MiscGameplayFunctions.CanIgnoreDistanceCheck(entity_ai);
 	}
 	
 	//per frame call
@@ -214,7 +215,8 @@ class VicinityItemManager
 		array<Object> filteredObjects 		= new array<Object>();
 		array<Object> allFoundObjects 		= new array<Object>();
 		vector playerPosition 				= player.GetPosition();
-		vector playerHeadPositionFixed		= MiscGameplayFunctions.GetPlayerHeadPosition(player);
+		vector playerHeadPositionFixed		= playerPosition;
+		playerHeadPositionFixed[1]			= playerHeadPositionFixed[1] + GetFixedHeadHeightAdjustment(player);
 		vector headingDirection 			= MiscGameplayFunctions.GetHeadingVector(player);		
 		
 		//! If in free camera, override the position that the inventory gets generated from
@@ -299,15 +301,6 @@ class VicinityItemManager
 
 			if (filteredObjects.Find(objectInCone) == INDEX_NOT_FOUND)
 			{
-				//if (objectInCone.IsBuilding()) //TODO: redo, buildings will show only some attachment groups, similar to cars or BBB objects
-				EntityAI ent;
-				if (Class.CastTo(ent,objectInCone) && ent.GetInventory())
-				{
-					//Print(ent.GetModelName());
-					filteredObjects.Insert(objectInCone);
-					continue;
-				}
-				
 				rayInput 		= new RaycastRVParams(playerHeadPositionFixed, objectInCone.GetPosition());
 				rayInput.flags	= CollisionFlags.ALLOBJECTS;
 				rayInput.type 	= ObjIntersectView;
@@ -417,6 +410,18 @@ class VicinityItemManager
 		}
 	}
 	
+	protected float GetFixedHeadHeightAdjustment(PlayerBase player)
+	{
+		if (player.IsPlayerInStance(DayZPlayerConstants.STANCEMASK_ERECT|DayZPlayerConstants.STANCEMASK_RAISEDERECT))
+			return PlayerConstants.HEAD_HEIGHT_ERECT;
+		if (player.IsPlayerInStance(DayZPlayerConstants.STANCEMASK_CROUCH|DayZPlayerConstants.STANCEMASK_RAISEDCROUCH))
+			return PlayerConstants.HEAD_HEIGHT_CROUCH;
+		if (player.IsPlayerInStance(DayZPlayerConstants.STANCEMASK_PRONE|DayZPlayerConstants.STANCEMASK_RAISEDPRONE))
+			return PlayerConstants.HEAD_HEIGHT_PRONE;
+		
+		return PlayerConstants.HEAD_HEIGHT_ERECT;
+	}
+	
 	bool IsObstructed(Object filtered_object)
 	{
 		return MiscGameplayFunctions.IsObjectObstructed(filtered_object);
@@ -476,10 +481,4 @@ class VicinityItemManager
 		shapesArr.Clear();
 	}
 #endif
-	
-	[Obsolete("use MiscGameplayFunctions.GetPlayerHeadHeight instead")]
-	protected float GetFixedHeadHeightAdjustment(PlayerBase player)
-	{
-		return MiscGameplayFunctions.GetPlayerHeadHeight(player);
-	}
 }

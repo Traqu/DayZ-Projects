@@ -288,7 +288,6 @@ class Land_WarheadStorage_PowerStation : House
 	override void OnAnimationPhaseStarted(string animSource, float phase)
 	{
 		#ifndef SERVER
-		#ifndef NO_GUI
 		if (animSource.Contains("lever"))
 		{
 			if (phase > 0)
@@ -296,7 +295,6 @@ class Land_WarheadStorage_PowerStation : House
 			else 
 				PlayLeverSound(animSource, 1);
 		}
-		#endif
 		#endif
 	}
 		

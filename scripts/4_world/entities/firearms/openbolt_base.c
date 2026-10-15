@@ -385,7 +385,6 @@ class OpenBolt_Base extends Rifle_Base
 		
 		RemoveAction(FirearmActionLoadBullet);
 		RemoveAction(FirearmActionLoadBulletQuick); // Easy reload
-		AddAction(FirearmActionDetachMagazine);
 	}
 
 }

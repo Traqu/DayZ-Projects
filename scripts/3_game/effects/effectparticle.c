@@ -4,28 +4,26 @@
 class EffectParticle : Effect
 {
 	//! The main Particle effect that this Effect wrapper manages
-	protected Particle 	m_ParticleObj;
+	protected Particle 			m_ParticleObj;
 	
 	/** \name Generic data
 	*	Generic data for the particle
 	*/
 	//@{
 	//! The ID in the ParticleList to create Particle from
-	protected int			m_ParticleID;
+	protected int				m_ParticleID;
 	//! Orientation set by SetOrientation
-	protected vector		m_Orientation;
-	//! Name of sound set that is going to be played when particle starts playback
-	protected EffectSound	m_EffectSound;
-	//! Flags passed to ParticleManager.CreateParticleEx when the particle is created, see ParticlePropertiesFlags
-	protected int			m_PPFlags;
+	protected vector			m_Orientation;
+	//! Orientation setting to be used by the effect when the Effect starts
+	protected bool    			m_ForceRotationRelativeToWorld;
 	//@}
 		
 	/** \name DEPRECATED
 	*	Simply exist because of backwards compatibility, might have never been used
 	*/
 	//@{
-	protected vector   		m_ParticleOrientation;
-	protected Object 		m_Object;
+	protected vector    		m_ParticleOrientation;
+	protected Object 			m_Object;
 	//@}
 	
 	
@@ -35,6 +33,7 @@ class EffectParticle : Effect
 	*/
 	void EffectParticle()
 	{
+		
 	}
 	
 	/**
@@ -42,10 +41,7 @@ class EffectParticle : Effect
 	*/
 	void ~EffectParticle()
 	{
-		if(m_EffectSound)
-		{
-			SEffectManager.DestroySound(m_EffectSound);
-		}
+
 	}
 		
 	/**
@@ -186,32 +182,16 @@ class EffectParticle : Effect
     {		
 		if (m_ParticleID > 0)
 		{
-			vector pos = GetPosition();	
+			vector pos = GetPosition();			
 			vector ori = GetOrientation();
 			
 			if (m_ParentObject)
 			{
 				pos = GetLocalPosition();
 				ori = GetAttachedLocalOri();
-			}	
-	
-			SetParticle(ParticleManager.GetInstance().CreateParticleEx(m_ParticleID, pos, m_PPFlags, GetParent(), ori));
-			if (m_ParticleObj)
-			{
-				if (m_EffectSound)
-				{
-					if (GetParent())
-					{
-						SEffectManager.PlayOnObject(m_EffectSound, GetParent());
-					}
-					else
-					{
-						m_EffectSound.Start();
-					}	
-				}
-
-				m_ParticleObj.PlayParticleEx(m_ParticleID);
-			}
+			}		
+			
+			SetParticle(ParticleManager.GetInstance().CreateParticle(m_ParticleID, pos, true, GetParent(), ori, IsParticleRotationRelativeToWorld()));
 		}
 
 		super.Start();
@@ -229,13 +209,9 @@ class EffectParticle : Effect
 			SetParticle(null);
 		}
 		
-		if (m_EffectSound)
-		{
-			m_EffectSound.Stop();
-		}
-		
 		super.Stop();
-    }	
+    }
+	
 	//@}
 	
 	
@@ -518,21 +494,6 @@ class EffectParticle : Effect
 			return vector.Zero;
 	}
 	
-	protected void AddParticlePropertiesFlag(ParticlePropertiesFlags flag)
-	{
-		m_PPFlags = m_PPFlags | flag;
-	}
-	
-	protected void RemoveParticlePropertiesFlag(ParticlePropertiesFlags flag)
-	{
-		m_PPFlags = m_PPFlags & ~flag;
-	}
-	
-	protected bool IsSetParticlePropertiesFlag(ParticlePropertiesFlags flag)
-	{
-		return m_PPFlags & flag;
-	}
-	
 	/**
 	\brief Set orientation setting to be used by the effect when the Effect starts
 		\warning Only caches it into a variable to be used by Start, does not live update when called afterwards
@@ -541,10 +502,7 @@ class EffectParticle : Effect
 	*/
 	void ForceParticleRotationRelativeToWorld(bool state)
 	{
-		if (state)
-			AddParticlePropertiesFlag(ParticlePropertiesFlags.FORCE_WORLD_ROT);
-		else
-			RemoveParticlePropertiesFlag(ParticlePropertiesFlags.FORCE_WORLD_ROT);
+		m_ForceRotationRelativeToWorld = state;
 	}
 	
 	/**
@@ -554,29 +512,12 @@ class EffectParticle : Effect
 	*/
 	bool IsParticleRotationRelativeToWorld()
 	{
-		Particle p = GetParticle();
-
+		Particle p = GetParticle();	
+		
 		if (p)
 			return p.IsHierarchyPositionOnly();
 		else
-			return IsSetParticlePropertiesFlag(ParticlePropertiesFlags.FORCE_WORLD_ROT);
-	}
-	
-	/**
-	\brief Disable creating particle for preview player
-		\param disable \p bool Is particle not draw
-	*/
-	void DisableParticleInUI(bool disable)
-	{
-		if (disable)
-			AddParticlePropertiesFlag(ParticlePropertiesFlags.DISABLED_IN_UI);
-		else
-			RemoveParticlePropertiesFlag(ParticlePropertiesFlags.DISABLED_IN_UI);
-	}
-
-	bool IsDisableParticleInUI()
-	{
-		return IsSetParticlePropertiesFlag(ParticlePropertiesFlags.DISABLED_IN_UI);
+			return m_ForceRotationRelativeToWorld;
 	}
 	
 	/**
@@ -593,31 +534,9 @@ class EffectParticle : Effect
 			return false;
 	}
 	
-	/**
-	\brief Set effect sound play with particle
-	*/	
-	void SetEffectSound(EffectSound effectSound)
-	{
-		if (m_EffectSound)
-		{
-			SEffectManager.DestroySound(m_EffectSound);
-		}
-		m_EffectSound = effectSound;
-	}
-	
-	/**
-	\brief Selection of particle based on Surface
-	*/
-	void SelectFromSurface(string surface);
-	void SelectFromSurface(SurfaceInfo surfaceInfo);
-	
-	void SetParticleState(int state);
-
-	/**
-	\brief Callback for overriding effect's particle attributes
-	*/
-	void ParticleParamsOverride(notnull ParticleParamsOverrideData data);
 	//@}
+
+	
 	
 	/** \name DEPRECATED
 		Methods which exist for backwards compatibility and are no longer in use or have never been in use
@@ -646,14 +565,4 @@ class EffectParticle : Effect
 	}
 	
 	//@}
-}
-
-class ParticleParamsOverrideData
-{
-	ref TFloatArray m_FloatModifiers = new TFloatArray();
-	
-	void ClearAll()
-	{
-		m_FloatModifiers.Clear();
-	}
 }

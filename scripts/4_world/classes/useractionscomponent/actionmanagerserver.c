@@ -39,12 +39,6 @@ class ActionManagerServer: ActionManagerBase
 		{
 			case INPUT_UDT_STANDARD_ACTION_START:
 			{
-#ifdef ENABLE_LOGGING
-				if ( LogManager.IsActionLogEnable() )
-				{
-					Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp() + " INPUT_UDT_STANDARD_ACTION_START", this.ToString() , "n/a", "OnInputUserDataProcess", m_Player.ToString() );
-				}
-#endif
 				bool success = true;
 				
 				int actionID = 0;
@@ -75,12 +69,6 @@ class ActionManagerServer: ActionManagerBase
 
 			case INPUT_UDT_STANDARD_ACTION_END_REQUEST:
 			{
-#ifdef ENABLE_LOGGING
-				if ( LogManager.IsActionLogEnable() )
-				{
-					Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp() + " INPUT_UDT_STANDARD_ACTION_END_REQUEST", this.ToString() , "n/a", "OnInputUserDataProcess", m_Player.ToString() );
-				}
-#endif
 				//Debug.Log("Action want end request, STS = " + m_Player.GetSimulationTimeStamp());
 				int commandID = -10;
 				ctx.Read(commandID);
@@ -99,12 +87,6 @@ class ActionManagerServer: ActionManagerBase
 			
 			case INPUT_UDT_STANDARD_ACTION_INPUT_END:
 			{
-#ifdef ENABLE_LOGGING
-				if ( LogManager.IsActionLogEnable() )
-				{
-					Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp() + " INPUT_UDT_STANDARD_ACTION_INPUT_END", this.ToString() , "n/a", "OnInputUserDataProcess", m_Player.ToString() );
-				}
-#endif
 				//Debug.Log("Action input ended, STS = " + m_Player.GetSimulationTimeStamp());
 				m_ActionInputWantEnd = true;
 			}
@@ -114,12 +96,6 @@ class ActionManagerServer: ActionManagerBase
 		
 		if (!success)
 		{
-#ifdef ENABLE_LOGGING
-			if ( LogManager.IsActionLogEnable() )
-			{
-				Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp() + " !success", this.ToString() , "n/a", "OnInputUserDataProcess", m_Player.ToString() );
-			}
-#endif
 			//Debug.Log("[AM] OnInputUserDataProcess INPUT_UDT_STANDARD_ACTION_START Error");
 			if (recvAction.UseAcknowledgment())
 			{
@@ -151,19 +127,17 @@ class ActionManagerServer: ActionManagerBase
 		ActionTarget target		= m_CurrentActionData.m_Target;
 		ItemBase item			= m_CurrentActionData.m_MainItem;
 
-#ifdef ENABLE_LOGGING
 		if (LogManager.IsActionLogEnable())
 		{
 			if (target)
 			{
-				Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp() + "Item = " + item + ", " + target.DumpToString(), pickedAction.ToString() , "n/a", "StartDeliveredAction", m_Player.ToString());
+				Debug.ActionLog("Item = " + item + ", " + target.DumpToString(), pickedAction.ToString() , "n/a", "DeliveredAction", m_Player.ToString());
 			}
 			else
 			{
-				Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp() + "Item = " + item + ", NULL", pickedAction.ToString() , "n/a", "StartDeliveredAction", m_Player.ToString());
+				Debug.ActionLog("Item = " + item + ", NULL", pickedAction.ToString() , "n/a", "DeliveredAction", m_Player.ToString());
 			}
 		}
-#endif
 
 		if (!m_Player.GetCommandModifier_Action() && !m_Player.GetCommand_Action() && !m_Player.IsSprinting() && pickedAction && pickedAction.Can(m_Player,target,item)) 
 		{
@@ -173,12 +147,10 @@ class ActionManagerServer: ActionManagerBase
 		
 		if (accepted)
 		{
-#ifdef ENABLE_LOGGING
 			if (LogManager.IsActionLogEnable())
 			{
-				Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp() + " Action accepted", pickedAction.ToString() , "n/a", "CheckDeliveredAction", m_Player.ToString() );
+				Debug.ActionLog("Action accepted", pickedAction.ToString() , "n/a", "CheckDeliveredAction", m_Player.ToString() );
 			}
-#endif
 			//Debug.Log("[AM] Action acccepted");
 			if (pickedAction.UseAcknowledgment())
 			{
@@ -193,16 +165,13 @@ class ActionManagerServer: ActionManagerBase
 		}
 		else
 		{
-#ifdef ENABLE_LOGGING
 			if (LogManager.IsActionLogEnable())
 			{
-				Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp() + " Action rejected", pickedAction.ToString() , "n/a", "CheckDeliveredAction", m_Player.ToString() );
+				Debug.ActionLog("Action rejected", pickedAction.ToString() , "n/a", "CheckDeliveredAction", m_Player.ToString() );
 			}
-#endif
 
 			if (pickedAction.UseAcknowledgment())
 			{
-				m_CurrentActionData.m_State = UA_AM_PENDING;
 				DayZPlayerSyncJunctures.SendActionAcknowledgment(m_Player, m_PendingActionAcknowledgmentID, false);
 			}
 			else
@@ -217,12 +186,6 @@ class ActionManagerServer: ActionManagerBase
 		//Debug.Log("Action ended - hard, STS = " + m_Player.GetSimulationTimeStamp());
 		if (m_CurrentActionData)
 		{
-#ifdef ENABLE_LOGGING
-			if ( LogManager.IsActionLogEnable() )
-			{
-				Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "OnActionEnd", m_Player.ToString() );
-			}
-#endif
 			m_CurrentActionData.m_Action.ClearActionJuncture(m_CurrentActionData);
 
 			super.OnActionEnd();
@@ -241,12 +204,6 @@ class ActionManagerServer: ActionManagerBase
 		{
 			if (m_CurrentActionData)
 			{
-#ifdef ENABLE_LOGGING
-				if ( LogManager.IsActionLogEnable() )
-				{
-					Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp() + " m_PendingAction && m_CurrentActionData", this.ToString() , "n/a", "Update", m_Player.ToString() );
-				}
-#endif
 				DayZPlayerSyncJunctures.SendActionAcknowledgment(m_Player, m_PendingActionAcknowledgmentID, false);
 			}
 			else
@@ -256,12 +213,12 @@ class ActionManagerServer: ActionManagerBase
 				
 				bool success 			= true;
 				ActionTarget target 	= new ActionTarget(null, null, -1, vector.Zero, 0); 
-#ifdef ENABLE_LOGGING					
+					
 				if ( LogManager.IsActionLogEnable() )
 				{	
-					Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp(), m_PendingAction.ToString() , "n/a", "HandlePendingAction", m_Player.ToString() );
+					Debug.ActionLog("n/a", m_PendingAction.ToString() , "n/a", "HandlePendingAction", m_Player.ToString() );
 				}
-#endif
+
 				if (!m_PendingAction.SetupAction(m_Player,target,m_Player.GetItemInHands(),m_CurrentActionData))
 				{
 					success = false;
@@ -303,13 +260,8 @@ class ActionManagerServer: ActionManagerBase
 					break;
 			
 				case UA_AM_ACCEPTED:
-					// check currentCommandID before start or reject
-#ifdef ENABLE_LOGGING
-					if ( LogManager.IsActionLogEnable() )
-					{
-						Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp() + " UA_AM_ACCEPTED", this.ToString() , "n/a", "Update", m_Player.ToString() );
-					}
-#endif
+					// check currentCommandID before start or reject 
+				
 					int condition_mask = ActionBase.ComputeConditionMask(m_Player, m_CurrentActionData.m_Target, m_CurrentActionData.m_MainItem);
 					bool canActionPerform = ((condition_mask & m_CurrentActionData.m_Action.m_ConditionMask) == condition_mask);
 					if (canActionPerform && ActionPossibilityCheck(currentCommandID))
@@ -328,12 +280,6 @@ class ActionManagerServer: ActionManagerBase
 					break;
 				
 				case UA_AM_REJECTED:
-#ifdef ENABLE_LOGGING
-					if ( LogManager.IsActionLogEnable() )
-					{
-						Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp() + " UA_AM_REJECTED", this.ToString() , "n/a", "Update", m_Player.ToString() );
-					}
-#endif
 					OnActionEnd();
 					m_PendingActionAcknowledgmentID = -1;
 					break;
@@ -341,24 +287,12 @@ class ActionManagerServer: ActionManagerBase
 				default:
 					if (m_ActionInputWantEnd)
 					{
-#ifdef ENABLE_LOGGING
-						if ( LogManager.IsActionLogEnable() )
-						{
-							Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp() + " m_ActionInputWantEnd", this.ToString() , "n/a", "Update", m_Player.ToString() );
-						}
-#endif
 						m_ActionInputWantEnd = false;
 						m_CurrentActionData.m_Action.EndInput(m_CurrentActionData);
 					}
 				
 					if (m_ActionWantEndRequest)
 					{
-#ifdef ENABLE_LOGGING
-						if ( LogManager.IsActionLogEnable() )
-						{
-							Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp() + " m_ActionWantEndRequest", this.ToString() , "n/a", "Update", m_Player.ToString() );
-						}
-#endif
 						m_ActionWantEndRequest = false;
 						m_CurrentActionData.m_Action.EndRequest(m_CurrentActionData);
 					}
@@ -371,15 +305,7 @@ class ActionManagerServer: ActionManagerBase
 	override void RequestInterruptAction()
 	{
 		if (m_CurrentActionData)
-		{
-#ifdef ENABLE_LOGGING
-			if ( LogManager.IsActionLogEnable() )
-			{
-				Debug.ActionLog("STS = " + m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "RequestInterruptAction", m_Player.ToString() );
-			}
-#endif
 			DayZPlayerSyncJunctures.SendActionInterrupt(m_Player);
-		}
 	}
 	
 	override ActionReciveData GetReciveData()

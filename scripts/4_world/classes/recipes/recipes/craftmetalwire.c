@@ -59,12 +59,13 @@ class CraftMetalWire extends RecipeBase
 	
 	override void Do(ItemBase ingredients[], PlayerBase player,array<ItemBase> results, float specialty_weight)//gets called upon recipe's completion
 	{
+		// We will save the wire type for decrafting
 		MetalWire wire = MetalWire.Cast( results[0] );
 		if ( wire )
 		{
-			float health = ingredients[0].GetHealth("",""); //we want the result health is based on the real health of barbed wire, not the level of it.
-			health = health * 0.85; //decreasing the health a bit, simulating damaging with pliers.
-			wire.SetHealth("","", health);
+			int health = wire.GetHealthLevel();
+			health++;
+			wire.SetHealth01("","", 1 - 0.3*health);
 		}
 	}
 	

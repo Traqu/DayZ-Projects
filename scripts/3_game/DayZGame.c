@@ -968,10 +968,6 @@ class DayZGame extends CGame
 	private float	m_UserFOV;
 
 	private float	m_DeltaTime;
-	
-#ifdef ROBOCLIENT
-	bool 	m_IsRoboclient = false;
-#endif
 
 	float 	m_volume_sound;
 	float 	m_volume_speechEX;
@@ -1081,18 +1077,7 @@ class DayZGame extends CGame
 
 		m_DayZProfileOptions = new DayZProfilesOptions();
 		
-#ifdef ROBOCLIENT
-		string roboclientValue;
-		if (CommandlineGetParam("roboclient", roboclientValue))
-		{	
-			m_IsRoboclient = true;
-		}
-#endif	
-			
-#ifndef SERVER
-		GetCallQueue(CALL_CATEGORY_SYSTEM).Call(DeferredInit);
-#endif
-		
+		GetCallQueue(CALL_CATEGORY_GUI).Call(DeferredInit);
 		GetCallQueue(CALL_CATEGORY_GAMEPLAY).Call(GlobalsInit);
 		
 		string path = "cfgVehicles";
@@ -1138,9 +1123,7 @@ class DayZGame extends CGame
 		GameOptions opt = new GameOptions();
 		opt.Initialize();
 		
-#ifndef NO_GUI
 		GetInput().UpdateConnectedInputDeviceList();
-#endif
 
 		m_UserFOV = GetUserFOVFromConfig();
 		
@@ -1487,10 +1470,8 @@ class DayZGame extends CGame
 			case StartupEventTypeID:
 			{
 				#ifndef SERVER
-				#ifndef NO_GUI
 				// Just call it, to create the global instance if it doesn't exist yet
 				ParticleManager.GetInstance();
-				#endif
 				#endif
 				break;
 			}
@@ -1967,7 +1948,6 @@ class DayZGame extends CGame
 		if (time >= 0)
 		{	
 			m_LoginTime = time;
-#ifndef NO_GUI
 			if (!m_LoginTimeScreen)
 			{
 				GetUIManager().CloseAll();
@@ -1979,7 +1959,6 @@ class DayZGame extends CGame
 			m_LoginTimeScreen.SetRespawn(true);
 			m_LoginTimeScreen.SetTime(m_LoginTime);
 			m_LoginTimeScreen.Show();
-#endif
 			
 			GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.LoginTimeCountdown, 1000, true);
 		}
@@ -2183,11 +2162,6 @@ class DayZGame extends CGame
 	void SetDatabaseID(string id)
 	{
 		m_DatabaseID = id;
-		
-#ifdef NO_GUI
-		return;
-#endif
-		
 		if (GetUIManager().GetMenu())
 		{
 			GetUIManager().GetMenu().Refresh();
@@ -3126,17 +3100,6 @@ class DayZGame extends CGame
 	#endif
 	}
 	
-	protected void ForceOvercastReset()
-	{
-		Weather weather = g_Game.GetWeather();
-		weather.GetOvercast().SetNextChange(0);
-		
-		if (weather.GetSandstorm().IsActive())
-		{
-			g_Game.GetCallQueue(CALL_CATEGORY_SYSTEM).RemoveByName(this, "ForceOvercastReset");
-		}
-	} 
-	
 	// ------------------------------------------------------------
 	override void OnRPC(PlayerIdentity sender, Object target, int rpc_type, ParamsReadContext ctx)
 	{
@@ -3159,11 +3122,6 @@ class DayZGame extends CGame
 				case ERPCs.RPC_CFG_GAMEPLAY_SYNC:
 				{
 					CfgGameplayHandler.OnRPC(null, ctx);
-					break;
-				}
-				case ERPCs.RPC_BUNKERBROADCAST_CONFIG_SYNC:
-				{
-					CfgBunkerBroadcastHandler.OnRPC(ctx);
 					break;
 				}
 				case ERPCs.RPC_UNDERGROUND_SYNC:
@@ -3362,7 +3320,6 @@ class DayZGame extends CGame
 				*/
 
 				#ifdef DEVELOPER
-				Weather weather;
 				case ERPCs.DEV_SET_WEATHER:
 				{
 					Param1<DebugWeatherRPCData> p1data = new Param1<DebugWeatherRPCData>(null);
@@ -3370,97 +3327,39 @@ class DayZGame extends CGame
 					if ( ctx.Read(p1data) )
 					{
 						DebugWeatherRPCData data = p1data.param1;
-						weather = g_Game.GetWeather();
 						
 						if (data.m_FogValue >= 0)
-							weather.GetFog().Set(data.m_FogValue, data.m_FogInterpolation, data.m_FogDuration);
+							g_Game.GetWeather().GetFog().Set(data.m_FogValue, data.m_FogInterpolation, data.m_FogDuration);
 						
 						if (data.m_OvercastValue >= 0)
-							weather.GetOvercast().Set(data.m_OvercastValue, data.m_OvercastInterpolation, data.m_OvercastDuration);
+							g_Game.GetWeather().GetOvercast().Set(data.m_OvercastValue, data.m_OvercastInterpolation, data.m_OvercastDuration);
 						
 						if (data.m_RainValue >= 0)
-							weather.GetRain().Set(data.m_RainValue, data.m_RainInterpolation, data.m_RainDuration);
+							g_Game.GetWeather().GetRain().Set(data.m_RainValue, data.m_RainInterpolation, data.m_RainDuration);
 						
 						if (data.m_SnowfallValue >= 0)
-							weather.GetSnowfall().Set(data.m_SnowfallValue, data.m_SnowfallInterpolation, data.m_SnowfallDuration);
+							g_Game.GetWeather().GetSnowfall().Set(data.m_SnowfallValue, data.m_SnowfallInterpolation, data.m_SnowfallDuration);
 						
 						if (data.m_VolFogDistanceDensity >= 0)
-							weather.SetDynVolFogDistanceDensity(data.m_VolFogDistanceDensity, data.m_VolFogDistanceDensityTime);
+							g_Game.GetWeather().SetDynVolFogDistanceDensity(data.m_VolFogDistanceDensity, data.m_VolFogDistanceDensityTime);
 						
 						if (data.m_VolFogHeightDensity >= 0)
-							weather.SetDynVolFogHeightDensity(data.m_VolFogHeightDensity, data.m_VolFogHeightDensityTime);
+							g_Game.GetWeather().SetDynVolFogHeightDensity(data.m_VolFogHeightDensity, data.m_VolFogHeightDensityTime);
 						
 						if (data.m_VolFogHeightBias >= -500)
-							weather.SetDynVolFogHeightBias(data.m_VolFogHeightBias, data.m_VolFogHeightBiasTime);
+							g_Game.GetWeather().SetDynVolFogHeightBias(data.m_VolFogHeightBias, data.m_VolFogHeightBiasTime);
 						
 						if (data.m_WindMagnitudeValue >= 0)
-							weather.GetWindMagnitude().Set(data.m_WindMagnitudeValue, data.m_WindDInterpolation, data.m_WindDDuration);
+							g_Game.GetWeather().GetWindMagnitude().Set(data.m_WindMagnitudeValue, data.m_WindDInterpolation, data.m_WindDDuration);
 						
 						if (data.m_WindDirectionValue >= -3.14)
-							weather.GetWindDirection().Set(data.m_WindDirectionValue, data.m_WindDInterpolation, data.m_WindDDuration);
+							g_Game.GetWeather().GetWindDirection().Set(data.m_WindDirectionValue, data.m_WindDInterpolation, data.m_WindDDuration);
 					}
 					else
 					{
 						ErrorEx("Failed to read weather debug data");
 					}
 					break;
-				}
-				case ERPCs.DEV_SET_SANDSTORM:
-				{
-					Param1<DebugSandstormRPCData> p1SandstormData = new Param1<DebugSandstormRPCData>(null);
-					
-					if (ctx.Read(p1SandstormData))
-					{
-						DebugSandstormRPCData sandstormData = p1SandstormData.param1;
-						weather = g_Game.GetWeather();
-												
-						// Determine the wind dir so it can align with the predefined sandstorm direction
-						vector stormDir = weather.GetSandstorm().GetDirection();
-						float stormAngle = weather.WindDirectionToAngle(stormDir);
-											
-						// Set accompanying properties like wind and overcast to desired values
-						weather.GetWindDirection().Set(stormAngle, sandstormData.m_FadeInTime, sandstormData.m_Duration);
-						
-						if (sandstormData.m_OvercastValue < 0.8)
-							sandstormData.m_OvercastValue = 0.8;
-						
-						weather.GetOvercast().Set(sandstormData.m_OvercastValue, sandstormData.m_FadeInTime, sandstormData.m_Duration);
-						
-						if (sandstormData.m_WindMagnitudeValue < 18.0)
-							sandstormData.m_WindMagnitudeValue = 18.0;
-						
-						weather.GetWindMagnitude().Set(sandstormData.m_WindMagnitudeValue, sandstormData.m_FadeInTime, sandstormData.m_Duration);
-						weather.GetRain().Set(0, sandstormData.m_FadeInTime, sandstormData.m_Duration);
-						
-						if (sandstormData.m_StartStorm)
-							weather.GetSandstorm().Start(sandstormData.m_FadeInTime, false);
-					}
-				}
-				case ERPCs.DEV_STOP_SANDSTORM:
-				{
-					weather = g_Game.GetWeather();
-					if (!weather.GetSandstorm().IsActive())
-						return;
-					
-					weather.GetSandstorm().Stop(0, false);
-				}
-				case ERPCs.DEV_SET_SANDSTORM_WEATHER:
-				{
-					weather = g_Game.GetWeather();
-					if (weather.GetSandstorm().IsActive())
-						return;
-										
-					g_Game.GetCallQueue(CALL_CATEGORY_SYSTEM).RemoveByName(this, "ForceOvercastReset");
-					g_Game.GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(ForceOvercastReset, 0.05, true);
-				}
-				case ERPCs.DEV_STOP_SANDSTORM_WEATHER:
-				{
-					weather = g_Game.GetWeather();
-					if (!weather.GetSandstorm().IsActive())
-						return;
-					
-					g_Game.GetCallQueue(CALL_CATEGORY_SYSTEM).RemoveByName(this, "ForceOvercastReset");
-					weather.GetSandstorm().Stop(0, false);
 				}
 				#endif
 				
@@ -3615,7 +3514,7 @@ class DayZGame extends CGame
 			if (multiplier == 0)
 				multiplier = 1;
 			
-			GetNoiseSystem().AddNoiseTarget(pos, 21, m_NoiseParams, multiplier);
+			GetNoiseSystem().AddNoiseTarget(pos, 21, m_NoiseParams, multiplier * g_Game.GetWeather().GetNoiseReductionByWeather());
 		}
 	}
 	
@@ -3624,19 +3523,21 @@ class DayZGame extends CGame
 		float energyFactor, float explosionFactor, bool isWater, string ammoType)
 	{
 		#ifndef SERVER
-		#ifndef NO_GUI
 		if (source)
 		{
 			if (g_Game.GetPlayer() == null)
 				return;
 			source.OnExplosionEffects(source, directHit, componentIndex, surface, pos, surfNormal, energyFactor, explosionFactor, isWater, ammoType);
 			
-			ExplosiveEffectData explosiveEffectData = AmmoTypesAPI.GetExplosiveEffectData(ammoType, surface);
-			if (explosiveEffectData.m_ParticleID > 0)
+			if (source.ShootsExplosiveAmmo() )
 			{
-				ParticleSource particleSource = ParticleManager.GetInstance().PlayInWorld(explosiveEffectData.m_ParticleID, pos);
-				particleSource.SetStartSoundParams(explosiveEffectData.m_SoundSetName, pos);
-			}	
+				int particleID = AmmoTypesAPI.GetExplosionParticleID(ammoType, surface);
+				if (particleID > -1)
+				{
+					ParticleManager.GetInstance().PlayInWorld(particleID, pos);
+				}
+			}
+				
 			
 			float distance_to_player = vector.Distance(pos, g_Game.GetPlayer().GetPosition());
 			m_AmmoShakeParams.Load(ammoType);
@@ -3649,7 +3550,6 @@ class DayZGame extends CGame
 				g_Game.GetPlayer().GetCurrentCamera().SpawnCameraShake(modifier * m_AmmoShakeParams.m_Strength);
 			}
 		}
-		#endif
 		#endif
 	}
 	
@@ -3762,12 +3662,11 @@ class DayZGame extends CGame
 		{
 			directHit.OnReceivedHit(impactEffectsData);
 		}
-	
-		#ifndef NO_GUI
+
 		ImpactMaterials.EvaluateImpactEffectEx(impactEffectsData);
 		#endif
-		#endif
-	
+		
+		
 		if (IsServer())
 		{
 			if (source && source.ShootsExplosiveAmmo() && !deflected && outSpeed == vector.Zero)
@@ -3790,7 +3689,7 @@ class DayZGame extends CGame
 			if (coefAdjusted == 0)
 				coefAdjusted = 1;
 			
-			GetNoiseSystem().AddNoiseTarget(pos, 10, m_NoiseParams, coefAdjusted); // Leave a ping for 5 seconds
+			GetNoiseSystem().AddNoiseTarget(pos, 10, m_NoiseParams, coefAdjusted * g_Game.GetWeather().GetNoiseReductionByWeather()); // Leave a ping for 5 seconds
 		}
 	}
 	
@@ -3816,9 +3715,7 @@ class DayZGame extends CGame
 		if (directHit)
 			directHit.OnReceivedHit(impactEffectsData);
 		
-		#ifndef NO_GUI
 		ImpactMaterials.EvaluateImpactEffectEx(impactEffectsData);
-		#endif
 		#endif
 		
 		// add hit noise
@@ -3830,7 +3727,7 @@ class DayZGame extends CGame
 			if (surfaceCoef == 0)
 				surfaceCoef = 1;
 			
-			GetNoiseSystem().AddNoisePos(EntityAI.Cast(source), pos, m_NoiseParams, surfaceCoef);
+			GetNoiseSystem().AddNoisePos(EntityAI.Cast(source), pos, m_NoiseParams, surfaceCoef * g_Game.GetWeather().GetNoiseReductionByWeather());
 		}
 	}
 	

@@ -33,23 +33,6 @@ class Van_01 extends CarScript
 			m_UTSource							= new UniversalTemperatureSource(this, m_UTSSettings, m_UTSLEngine);
 		}		
 	}
-
-	override bool NeedElectricitySourceDevice()
-	{
-		return true;
-	}
-	
-	override EntityAI GetElectricitySourceDevice()
-	{
-		super.GetElectricitySourceDevice();
-		
-		return GetInventory().FindAttachment(TruckBattery.SLOT_ID);
-	}
-	
-	override string GetElectricitySourceDeviceType()
-	{
-		return "TruckBattery";
-	}
 	
 	override void OnEngineStart()
 	{
@@ -285,6 +268,12 @@ class Van_01 extends CarScript
 
 		return "";
 	};
+
+	//-----------------------------------------------------------
+	override bool IsVitalTruckBattery()
+	{
+		return false;
+	}
 
 	//-----------------------------------------------------------
 	override bool IsVitalGlowPlug()

@@ -211,7 +211,7 @@ class EasterEgg : Inventory_Base
 	// ------------------------------
 	private void PlayVFX()
 	{
-		if ( !g_Game.IsHeadlessOrDedicatedServer() )
+		if ( !g_Game.IsDedicatedServer() )
 		{
 			if ( !m_ParCapture && m_CaptureState != eCaptureState.STASIS )
 			{
@@ -238,7 +238,7 @@ class EasterEgg : Inventory_Base
 	
 	private void PlaySFX( int releaseCase = eCaptureState.CAPTURE )
 	{
-		if ( !g_Game.IsHeadlessOrDedicatedServer() )
+		if ( !g_Game.IsDedicatedServer() )
 		{
 			string soundSet = "";
 			if ( releaseCase == eCaptureState.CAPTURE )

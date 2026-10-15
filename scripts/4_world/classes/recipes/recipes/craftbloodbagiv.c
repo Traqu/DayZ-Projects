@@ -69,7 +69,6 @@ class CraftBloodBagIV extends RecipeBase
 		{
 			MiscGameplayFunctions.TransferItemProperties(bloodBagIngr, bloodBagResult, true, true, false, true);
 			bloodBagResult.SetBloodTypeVisible(bloodBagIngr.GetBloodTypeVisible());
-			bloodBagResult.SetQuantityNormalized(bloodBagIngr.GetQuantityNormalized());
 		}
 	}
 };

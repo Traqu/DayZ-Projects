@@ -84,9 +84,11 @@ class HudDebugWinCharLevels extends HudDebugWinBase
 	}
 
 
-	override void Update(float timeslice)
+	override void Update()
 	{
-		super.Update(timeslice);
+		super.Update();
+		
+		//Print("Update()");
 		
 		//refresh notifiers
 		SetValues();

@@ -107,10 +107,7 @@ class ActionAttachOnSelection: ActionSingleUseBase
 	override void OnExecuteServer( ActionData action_data )
 	{
 		if (g_Game.IsMultiplayer())
-		{
-			ClearActionJuncture(action_data);
 			return;
-		}
 		
 		ClearInventoryReservationEx(action_data);
 		

@@ -35,12 +35,7 @@ class ActionTakeItemToHands: ActionInteractBase
 			return false;
 		
 		EntityAI targetParent = EntityAI.Cast(targetItem.GetHierarchyParent());
-		if (!targetItem.IsTakeable() || targetItem.IsBeingPlaced() || targetItem.IsSetForDeletion() || ( targetItem.GetHierarchyParent() && !targetParent.CanUseConstruction()) || ((targetParent && !targetItem.CanDetachAttachment(targetParent)) || (targetParent && !targetParent.CanReleaseAttachment(targetItem))))
-			return false;
-		
-		//! Special handling for digital code lock
-		DigitalCodeLock codeLock = DigitalCodeLock.Cast(targetItem);
-		if (codeLock && !codeLock.CanDetachCodeLock(player, target.GetComponentIndex()))
+		if (!targetItem.IsTakeable() || targetItem.IsBeingPlaced() || targetItem.IsSetForDeletion() || ( targetItem.GetHierarchyParent() && !BaseBuildingBase.Cast(targetParent) ) || ((targetParent && !targetItem.CanDetachAttachment(targetParent)) || (targetParent && !targetParent.CanReleaseAttachment(targetItem))))
 			return false;
 		
 		return player.GetInventory().CanAddEntityIntoHands(targetItem);

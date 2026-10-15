@@ -78,7 +78,7 @@ class ActionUnrestrainTargetHands: ActionContinuousBase
 			targetPlayer.SetRestrained(false);
 			if (item_in_hands)
 			{
-				MiscGameplayFunctions.TransformRestrainItem(item_in_hands, null, action_data.m_Player, targetPlayer, true);
+				MiscGameplayFunctions.TransformRestrainItem(item_in_hands, null, action_data.m_Player, targetPlayer);
 			}
 			else
 			{

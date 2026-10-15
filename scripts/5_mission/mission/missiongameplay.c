@@ -55,12 +55,6 @@ class MissionGameplay extends MissionBase
 	
 	private float					m_ExitButtonDisabledRemainingTime;
 	
-	#ifndef BULDOZER
-	#ifdef DIAG_DEVELOPER	
-	protected BunkerBroadcastHandler m_BunkerBroadcastHandler;
-	#endif
-	#endif
-
 	void MissionGameplay()
 	{
 		DestroyAllMenus();
@@ -114,7 +108,6 @@ class MissionGameplay extends MissionBase
 		{
 			CfgGameplayHandler.LoadData();
 			UndergroundAreaLoader.SpawnAllTriggerCarriers();
-			CfgBunkerBroadcastHandler.LoadData();
 		}
 		#endif
 		#endif
@@ -207,8 +200,6 @@ class MissionGameplay extends MissionBase
 		{
 			// We will load the Effect areas on Default mission start
 			EffectAreaLoader.CreateZones();
-			m_BunkerBroadcastHandler = BunkerBroadcastHandler.GetInstance();
-			CfgBunkerBroadcastHandler.Spawn();
 		}
 		#endif
 		#endif
@@ -712,15 +703,6 @@ class MissionGameplay extends MissionBase
 		
 		if (!g_Game.IsMultiplayer())
 			m_WorldData.UpdateBaseEnvTemperature( timeslice );
-		
-		#ifndef BULDOZER
-		#ifdef DIAG_DEVELOPER
-		if (!GetGame().IsMultiplayer()) //! to make it work in single during development
-		{
-			m_BunkerBroadcastHandler.Update(timeslice);
-		}
-		#endif
-		#endif		
 
 #ifdef DIAG_DEVELOPER
 		DisplayHairDebug();
@@ -731,11 +713,6 @@ class MissionGameplay extends MissionBase
 			m_ProcessInputExcludes = false;
 		}
 		
-#ifdef DEVELOPER
-		if (m_HudDebug)
-			m_HudDebug.Update(timeslice);
-#endif
-		
 		super.OnUpdate( timeslice );
 	}
 	
@@ -743,10 +720,6 @@ class MissionGameplay extends MissionBase
 	{
 		super.OnKeyPress(key);
 		m_Hud.KeyPress(key);
-		
-		DigitalCodeLockUIBase codeLockUI;
-		if (Class.CastTo(codeLockUI, GetGame().GetUIManager().FindMenu(MENU_DIGITAL_CODELOCK)))
-			codeLockUI.KeyPress(key);
 	}
 	
 	override void OnKeyRelease(int key)
@@ -983,11 +956,6 @@ class MissionGameplay extends MissionBase
 					GetUApi().GetInputByID(UAWalkRunForced).ForceEnable(false); // force walk off!
 					break;
 				}
-				case EInputRestrictors.SURRENDER_TRANSITION:
-				{
-					GetUApi().GetInputByID(UATempRaiseWeapon).ForceDisable(false);
-					break;
-				}
 			}
 			
 			if (m_ActiveInputRestrictions && m_ActiveInputRestrictions.Find(restrictor) != -1)
@@ -1052,11 +1020,6 @@ class MissionGameplay extends MissionBase
 				case EInputRestrictors.MAP:
 				{
 					GetUApi().GetInputByID(UAWalkRunForced).ForceEnable(true); // force walk on!
-					break;
-				}
-				case EInputRestrictors.SURRENDER_TRANSITION:
-				{
-					GetUApi().GetInputByID(UATempRaiseWeapon).ForceDisable(true);
 					break;
 				}
 			}
@@ -1388,7 +1351,6 @@ class MissionGameplay extends MissionBase
 			
 			if (m_Logout)
 			{
-				g_Game.LogoutRequestTime();
 				m_Logout.SetLogoutTime();
 			}
 		}		
@@ -1481,9 +1443,6 @@ class MissionGameplay extends MissionBase
 				m_DebugMonitor.SetBlood(values.GetBlood());
 				m_DebugMonitor.SetLastDamage(values.GetLastDamage());
 				m_DebugMonitor.SetPosition(MiscGameplayFunctions.TruncateVec(player.GetPosition(),1));
-				m_DebugMonitor.SetEnvironmentTemperature(values.GetEnvironmentTemperature());
-				m_DebugMonitor.SetHeatComfort(values.GetHeatComfort());
-				m_DebugMonitor.SetThermalBias(values.GetThermalBias());
 			}
 		}
 		

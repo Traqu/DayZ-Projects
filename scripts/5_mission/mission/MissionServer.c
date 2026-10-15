@@ -24,8 +24,6 @@ class MissionServer extends MissionBase
 	protected int 				m_MinSimultaneousStrikes = 0;	// The MIN of simultaneous shots on the map (Will be clamped between 1 and max shots)
 	protected int 				m_MaxSimultaneousStrikes = 0;	// The MAX of simultaneous shots on the map (Will be clamped between 1 and max amount of coords)
 	protected ref array<vector> m_FiringPos; 					// Where we should fire from. On Init set the relevant data
-
-	protected BunkerBroadcastHandler m_BunkerBroadcastHandler;
 	
 	//All Chernarus firing coordinates 
 	protected const ref array<vector> CHERNARUS_STRIKE_POS = 
@@ -91,9 +89,6 @@ class MissionServer extends MissionBase
 		UndergroundAreaLoader.SpawnAllTriggerCarriers();
 		//Either pass consts in Init.c or insert all desired coords (or do both ;))
 		m_FiringPos = new array<vector>();
-
-		CfgBunkerBroadcastHandler.LoadData();
-		m_BunkerBroadcastHandler = BunkerBroadcastHandler.GetInstance();
 	}
 	
 	override void OnMissionStart()
@@ -102,7 +97,6 @@ class MissionServer extends MissionBase
 		
 		// We will load the Effect areas on Default mission start
 		EffectAreaLoader.CreateZones();
-		CfgBunkerBroadcastHandler.Spawn();
 	}
 	
 	override void OnUpdate(float timeslice)
@@ -122,7 +116,6 @@ class MissionServer extends MissionBase
 		UpdateLogoutPlayers();		
 		m_WorldData.UpdateBaseEnvTemperature(timeslice);	// re-calculate base enviro temperature
 		m_RainProcHandler.Update(timeslice);
-		m_BunkerBroadcastHandler.Update(timeslice);
 		
 		RandomArtillery(timeslice);
 		
@@ -266,11 +259,8 @@ class MissionServer extends MissionBase
 	
 	protected void AddNewPlayerLogout(PlayerBase player, notnull LogoutInfo info)
 	{
-		if (m_NewLogoutPlayers.Contains(player))
-		{
-			m_LogoutPlayers.Insert(player, info);
-			m_NewLogoutPlayers.Remove(player);
-		}
+		m_LogoutPlayers.Insert(player, info);
+		m_NewLogoutPlayers.Remove(player);
 	}
 	
 	// check if logout finished for some players
@@ -318,8 +308,8 @@ class MissionServer extends MissionBase
 			ClientPrepareEventParams clientPrepareParams;
 			Class.CastTo(clientPrepareParams, params);
 			CfgGameplayHandler.SyncDataSendEx(clientPrepareParams.param1);
+			UndergroundAreaLoader.SyncDataSend(clientPrepareParams.param1);
 			CfgPlayerRestrictedAreaHandler.SyncDataSend(clientPrepareParams.param1);
-			CfgBunkerBroadcastHandler.SyncDataSend(clientPrepareParams.param1);
 			OnClientPrepareEvent(clientPrepareParams.param1, clientPrepareParams.param2, clientPrepareParams.param3, clientPrepareParams.param4, clientPrepareParams.param5);
 			break;
 
@@ -339,7 +329,6 @@ class MissionServer extends MissionBase
 			ControlPersonalLight(player);
 			SyncGlobalLighting(player);
 			
-			UndergroundAreaLoader.SyncDataSend(identity);
 			break;
 			
 		case ClientReadyEventTypeID:
@@ -359,8 +348,6 @@ class MissionServer extends MissionBase
 			SyncEvents.SendPlayerList();
 			ControlPersonalLight(player);
 			SyncGlobalLighting(player);
-			
-			UndergroundAreaLoader.SyncDataSend(identity);
 			break;
 					
 		case ClientRespawnEventTypeID:
@@ -662,7 +649,7 @@ class MissionServer extends MissionBase
 					LogoutInfo params = new LogoutInfo(g_Game.GetTime() + logoutTime * 1000, identity.GetId());
 					
 					m_NewLogoutPlayers.Insert(player, params);
-					g_Game.GetCallQueue(CALL_CATEGORY_GAMEPLAY).Call(AddNewPlayerLogout, player, params);
+					g_Game.GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLater(AddNewPlayerLogout, 0, false, player, params);
 					
 					// allow reconnecting to old char only if not in cars, od ladders etc. as they cannot be properly synchronized for reconnect
 					//if (!player.GetCommand_Vehicle() && !player.GetCommand_Ladder())
@@ -892,11 +879,6 @@ class MissionServer extends MissionBase
 					GetUApi().GetInputByID(UAWalkRunForced).ForceEnable(false); // force walk off!
 					break;
 				}
-				case EInputRestrictors.SURRENDER_TRANSITION:
-				{
-					GetUApi().GetInputByID(UATempRaiseWeapon).ForceDisable(false); //
-					break;
-				}
 			}
 			
 			if (m_ActiveInputRestrictions && m_ActiveInputRestrictions.Find(restrictor) != -1)
@@ -961,11 +943,6 @@ class MissionServer extends MissionBase
 				case EInputRestrictors.MAP:
 				{
 					GetUApi().GetInputByID(UAWalkRunForced).ForceEnable(true); // force walk on!
-					break;
-				}
-				case EInputRestrictors.SURRENDER_TRANSITION:
-				{
-					GetUApi().GetInputByID(UATempRaiseWeapon).ForceDisable(true);
 					break;
 				}
 			}

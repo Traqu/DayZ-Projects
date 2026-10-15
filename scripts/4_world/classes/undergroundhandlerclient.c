@@ -105,9 +105,7 @@ class UndergroundHandlerClient
 			if (indx > 32)//error handling for exceeding this limit is handled elsewhere
 				break;
 			
-			vector playerPosition = m_Player.GetPosition();
-			vector crumbPosition = crumb.GetPosition();
-			float dist = vector.Distance(playerPosition, crumbPosition);
+			float dist = vector.Distance(m_Player.GetPosition(), crumb.GetPosition());
 			float crumbRadius = m_TransitionalTrigger.m_Data.Breadcrumbs[indx].Radius;
 			float maxRadiusAllowed = DISTANCE_CUTOFF;
 			
@@ -138,8 +136,9 @@ class UndergroundHandlerClient
 				excludeMask = (excludeMask | (1 << indx));
 			else if (m_TransitionalTrigger.m_Data.Breadcrumbs[indx].UseRaycast)
 			{
-				vector rayStart = MiscGameplayFunctions.GetPlayerHeadPosition(m_Player);
-				vector rayEnd = crumbPosition;
+				vector rayStart;
+				MiscGameplayFunctions.GetHeadBonePos(m_Player, rayStart);
+				vector rayEnd = crumb.GetPosition();
 				vector hitPos, hitNormal;
 				float hitFraction;
 				Object hitObj;
@@ -154,7 +153,7 @@ class UndergroundHandlerClient
 			
 			#ifdef DIAG_DEVELOPER
 			if ( DiagMenu.GetBool(DiagMenuIDs.UNDERGROUND_SHOW_BREADCRUMB) )
-				Debug.DrawSphere(crumbPosition, 0.1, COLOR_RED, ShapeFlags.ONCE);
+				Debug.DrawSphere(crumb.GetPosition(),0.1, COLOR_RED, ShapeFlags.ONCE);
 			#endif
 		}
 		
@@ -296,18 +295,19 @@ class UndergroundHandlerClient
 		}
 		
 		#ifdef DIAG_DEVELOPER
-		if (DiagMenu.GetBool(DiagMenuIDs.UNDERGROUND_SHOW_BREADCRUMB))
-		{
-			vector headPosition = MiscGameplayFunctions.GetPlayerHeadPosition(m_Player);
-			Debug.DrawLine(headPosition, closestPoint.GetPosition(), COLOR_YELLOW, ShapeFlags.ONCE);
-			if (acco != accoMin && acco != accoMax)
-				Debug.DrawLine(closestPoint.GetPosition(), secondaryPoint.GetPosition(), COLOR_RED, ShapeFlags.ONCE);
-		
-			DbgUI.Begin(String("Underground Areas"), 20, 20);
-			DbgUI.Text(String("Closest point id: " + points.Find(closestPoint)));
-			DbgUI.Text(String("Second closest id: " + points.Find(secondaryPoint)));
-			DbgUI.End();
-		}
+			if (DiagMenu.GetBool(DiagMenuIDs.UNDERGROUND_SHOW_BREADCRUMB))
+			{
+				vector headPosition;
+				MiscGameplayFunctions.GetHeadBonePos(m_Player, headPosition);
+				Debug.DrawLine(headPosition, closestPoint.GetPosition(), COLOR_YELLOW, ShapeFlags.ONCE);
+				if (acco != accoMin && acco != accoMax)
+					Debug.DrawLine(closestPoint.GetPosition(), secondaryPoint.GetPosition(), COLOR_RED, ShapeFlags.ONCE);
+			
+				DbgUI.Begin(String("Underground Areas"), 20, 20);
+				DbgUI.Text(String("Closest point id: " + points.Find(closestPoint)));
+				DbgUI.Text(String("Second closest id: " + points.Find(secondaryPoint)));
+				DbgUI.End();
+			}
 		#endif
 	}
 	
@@ -465,11 +465,18 @@ class UndergroundHandlerClient
 	{
 		EUndergroundPresence newPresence = EUndergroundPresence.NONE;
 		EUndergroundPresence oldPresence = m_Player.m_UndergroundPresence;
-
-		if (trigger)
-			newPresence = trigger.TranslateTriggerTypeToPresence();
 		
-		if (newPresence != oldPresence)
+		if (trigger)
+		{
+			if (trigger.m_Type == EUndergroundTriggerType.OUTER)
+				newPresence = EUndergroundPresence.OUTER;
+			else if (trigger.m_Type == EUndergroundTriggerType.TRANSITIONING)
+				newPresence = EUndergroundPresence.TRANSITIONING;
+			else if (trigger.m_Type == EUndergroundTriggerType.INNER)
+				newPresence = EUndergroundPresence.FULL;
+		}
+		
+		if (newPresence != oldPresence)//was there a change ?
 		{
 			OnUndergroundPresenceUpdate(newPresence, oldPresence);
 			m_Player.SetUnderground(newPresence);
@@ -490,7 +497,6 @@ class UndergroundHandlerClient
 	{
 		if (!m_AnimTimerLightBlend)
 			return;
-	
 		float value01 = m_AnimTimerLightBlend.GetValue();
 		float result = Easing.EaseInQuint(value01);
 		m_LightingLerp = result;
@@ -501,7 +507,6 @@ class UndergroundHandlerClient
 	{
 		if (!m_AnimTimerLightBlend)
 			return;
-
 		float value01 = m_AnimTimerLightBlend.GetValue();
 		float result = Easing.EaseOutCubic(value01);
 		m_LightingLerp = result;

@@ -17,12 +17,11 @@ class DayZIntroScenePC : DayZIntroScene
 	protected float 	m_BlurValue;
 
 	protected ref OptionsMenu m_optmenu;
-	
-	override void SetScene()
+
+	// ------------------------------------------------------------
+	void DayZIntroScenePC()
 	{
-		super.SetScene();
-		
-		SetClickEnable(true);
+		SetClickEnable( true );
 
 		m_DeltaX = Math.AbsFloat(m_CharacterPos[0] - m_Camera.GetPosition()[0]);
 		m_DeltaZ = Math.AbsFloat(m_CharacterPos[2] - m_Camera.GetPosition()[2]);

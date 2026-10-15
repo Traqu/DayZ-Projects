@@ -11,7 +11,7 @@ class TurnItemIntoItemLambda extends ReplaceItemWithNewLambda
 		SetTransferParams();
 	}
 	
-	void SetTransferParams(bool transfer_agents = true, bool transfer_variables = true, bool transfer_health = true, bool exclude_quantity = false, float quantity_override = -1)
+	void SetTransferParams (bool transfer_agents = true, bool transfer_variables = true, bool transfer_health = true, bool exclude_quantity = false, float quantity_override = -1)
 	{
 		m_TransferAgents = transfer_agents;
 		m_TransferVariables = transfer_variables; 
@@ -20,7 +20,7 @@ class TurnItemIntoItemLambda extends ReplaceItemWithNewLambda
 		m_quantity_override = quantity_override;
 	}
 
-	override void CopyOldPropertiesToNew(notnull EntityAI old_item, EntityAI new_item)
+	override void CopyOldPropertiesToNew (notnull EntityAI old_item, EntityAI new_item)
 	{
 		super.CopyOldPropertiesToNew(old_item, new_item);
 
@@ -723,41 +723,6 @@ class MiscGameplayFunctions
 			{ pos = player.GetBonePositionWS(headBoneIdx); }	
 	}
 
-	/*!
-		\brief Returns approximated height(from terrain) of head in WS which takes the player's stance into account
-		       Preferred method over GetHeadBonePos variant which can be expensive on perf
-		\param player Reference to player entity
-	*/
-	static float GetPlayerHeadHeight(notnull PlayerBase player)
-	{
-		if (player.IsPlayerInStance(DayZPlayerConstants.STANCEMASK_ERECT|DayZPlayerConstants.STANCEMASK_RAISEDERECT))
-			return PlayerConstants.HEAD_HEIGHT_ERECT;
-		if (player.IsPlayerInStance(DayZPlayerConstants.STANCEMASK_CROUCH|DayZPlayerConstants.STANCEMASK_RAISEDCROUCH))
-			return PlayerConstants.HEAD_HEIGHT_CROUCH;
-		if (player.IsPlayerInStance(DayZPlayerConstants.STANCEMASK_PRONE|DayZPlayerConstants.STANCEMASK_RAISEDPRONE))
-			return PlayerConstants.HEAD_HEIGHT_PRONE;
-		
-		return PlayerConstants.HEAD_HEIGHT_ERECT;
-	}
-
-	/*!
-		\brief Returns approximated position of head in WS which takes the player's stance into account
-		       Preferred method over GetHeadBonePos variant which can be expensive on perf
-		\param player Reference to player entity
-	*/
-	static vector GetPlayerHeadPosition(notnull PlayerBase player)
-	{
-		float headHeight = GetPlayerHeadHeight(player);
-		vector playerPosition = player.GetPosition();
-		vector headPosition = Vector(
-			playerPosition[0],
-			playerPosition[1] + headHeight,
-			playerPosition[2],
-		);
-		
-		return headPosition;
-	}
-
 	static vector GetHeadingVector(notnull PlayerBase player)
 	{
 		vector dir = vector.Zero;
@@ -842,14 +807,10 @@ class MiscGameplayFunctions
 		{
 			if ( player_target )
 			{
-				if (!player_target.IsAlive() || destroy)
-				{
-					MiscGameplayFunctions.TurnItemIntoItemEx(player_source, new DestroyItemInCorpsesHandsAndCreateNewOnGndLambda(current_item, new_item_name, player_target, type));
-				}
-				else
-				{
+				if (player_target.IsAlive())
 					MiscGameplayFunctions.TurnItemIntoItemEx(player_target, new ReplaceAndDestroyLambdaEx(current_item, new_item_name, player_target, type));
-				}
+				else
+					MiscGameplayFunctions.TurnItemIntoItemEx(player_source, new DestroyItemInCorpsesHandsAndCreateNewOnGndLambda(current_item, new_item_name, player_target, type));
 			}
 			else
 			{
@@ -907,115 +868,100 @@ class MiscGameplayFunctions
 		output = output.Substring(0,Math.Clamp(max_length,0,output.Length()));
 		return output;
 	}
-
-	static bool MemPointDirectionalCheck(PlayerBase player, EntityAI targetEnt, string memPointStartName, string memPointEndName, float toleranceAngle = Math.PI_HALF)
+	
+	// deprecated - dont use
+	static bool ComplexBuildCollideCheckClient( PlayerBase player, ActionTarget target, ItemBase item, string partName = "" )
 	{
-		if (player && targetEnt && memPointEndName != "" && targetEnt.MemoryPointExists(memPointEndName) && memPointStartName != "" && targetEnt.MemoryPointExists(memPointStartName))
-		{
-			vector memPointEndPos = targetEnt.ModelToWorld(targetEnt.GetMemoryPointPos(memPointEndName));
-			vector memPointStartPos = targetEnt.ModelToWorld(targetEnt.GetMemoryPointPos(memPointStartName));
-			vector playerPosition = player.GetPosition();
-			vector playerHeadPos = MiscGameplayFunctions.GetPlayerHeadPosition(player);
-			vector playerDir = vector.Direction(playerHeadPos, memPointStartPos);
-			playerDir.Normalize();
-			vector memDir = vector.Direction(memPointStartPos, memPointEndPos);
-			memDir.Normalize();
-			
-			/*
-			vector dbgPos = playerPosition;
-			Debug.DrawArrow(dbgPos, dbgPos + playerDir, 0.15, COLOR_YELLOW);
-			Debug.DrawArrow(memPointStartPos, memPointStartPos + memDir, 0.15, COLOR_GREEN);
-			
-			Debug.DrawSphere(memPointStartPos, 0.05, COLOR_YELLOW, ShapeFlags.TRANSP|ShapeFlags.NOOUTLINE);
-			Debug.DrawSphere(dbgPos, 0.05, COLOR_RED, ShapeFlags.TRANSP|ShapeFlags.NOOUTLINE);
-			*/
-			
-			return GenericDirectionalCheck(playerDir, memDir, toleranceAngle);
-		}
-		
 		return true;
-	}
-
-	//! just compares the angle
-	static bool GenericDirectionalCheck(vector dir1, vector dir2, float toleranceAngle)
-	{
-		float angleRad = Math.Acos(dir1 * dir2);
-		
-		//Print(angleRad);
-		//Print("result: " + (angleRad > toleranceAngle));
-
-		return angleRad > toleranceAngle;
 	}
 	
 	static bool ComplexBuildCollideCheckClient( PlayerBase player, ActionTarget target, ItemBase item, int constraction_index )
 	{
-		EntityAI ent;
-		if (Class.CastTo(ent,target.GetObject()) && ent.CanUseConstruction())
+		BaseBuildingBase base_building = BaseBuildingBase.Cast( target.GetObject() );
+		if (base_building)
 		{
-			ConstructionBase construction = ConstructionBase.Cast(ent.GetConstructionBasic());
-			ConstructionActionData constructionActionData = player.GetConstructionActionData();
-			if (construction && BuildCondition(player, target, item, false, constraction_index))
+			Construction construction = base_building.GetConstruction();
+			if (construction && BuildCondition( player, target, item, false, constraction_index ))
 			{
+				ConstructionActionData construction_action_data = player.GetConstructionActionData();
 				string partName;
-				if (item)
+				if ( item )
 				{
-					partName = constructionActionData.GetBuildPartAtIndex(constraction_index).GetPartName();
+					partName = construction_action_data.GetBuildPartAtIndex(constraction_index).GetPartName();
 				}
-					
-				BaseBuildingBase baseBuilding;
-				if (Class.CastTo(baseBuilding,ent))
+				else
 				{
-					bool boo;
-					if (baseBuilding.PerformRoofCheckForBase(partName,player,boo) && boo)
-						return false;
+					partName = construction_action_data.GetBuildPartNoToolAtIndex(constraction_index).GetPartName();
 				}
-				
-				if (player.IsPlacingLocal() || player.IsPlacingServer())
+				bool boo;
+				if (base_building.PerformRoofCheckForBase(partName,player,boo) && boo)
+					return false;
+				if ( player.IsPlacingLocal() || player.IsPlacingServer() )
 					return false;
 				
-				CollisionCheckData checkData = new CollisionCheckData;
-				checkData.m_PartName = partName;
-				
-				return !construction.IsCollidingEx(checkData);
+				/*float distance_root = vector.DistanceSq(target.GetCursorHitPos(), player.GetPosition());
+
+				if (!CfgGameplayHandler.GetDisableDistanceCheck() && distance_root < UAMaxDistances.BASEBUILDING_SHORT)
+				{
+					return false;
+				} */
+				return !construction.IsColliding( partName );
 			}
 		}
 		return false;
 	}
-
-	static bool BuildCondition( PlayerBase player, ActionTarget target, ItemBase item, bool camera_check, int constraction_index )
+	
+	// deprecated - dont use
+	static bool BuildCondition( PlayerBase player, ActionTarget target, ItemBase item, bool camera_check )
 	{
-		EntityAI ent = EntityAI.Cast(target.GetObject());
-		if (ent && ent.CanUseConstruction())
+		return true;
+	}
+	
+	static bool BuildCondition( PlayerBase player, ActionTarget target, ItemBase item, bool camera_check, int constraction_index )
+	{	
+		Object targetObject = target.GetObject();
+		if ( targetObject && targetObject.CanUseConstruction() )
 		{
-			ConstructionActionData constructionActionData = player.GetConstructionActionData();
-			constructionActionData.SetTarget(ent);
+			BaseBuildingBase base_building = BaseBuildingBase.Cast( targetObject );
+			ConstructionActionData construction_action_data = player.GetConstructionActionData();
+			construction_action_data.SetTarget( targetObject );
 			
-			ConstructionPart part;
-			if (item)
+			ConstructionPart constrution_part;
+			if ( item )
 			{
-				part = constructionActionData.GetBuildPartAtIndex(constraction_index);
+				constrution_part = construction_action_data.GetBuildPartAtIndex(constraction_index);
 			}
 			else
 			{
-				part = constructionActionData.GetBuildPartHandsGenericAtIndex(constraction_index);
+				constrution_part = construction_action_data.GetBuildPartNoToolAtIndex(constraction_index);
 			}
+
+			//Debug
+			/*
+			if ( constrution_part )
+			{
+				Construction construction = base_building.GetConstruction();	
+				construction.IsColliding( constrution_part.GetPartName() );
+			}
+			*/
 			
-			if (part)
+			if ( constrution_part )
 			{
 				//camera and position checks
-				
-				BaseBuildingBase baseBuilding;
-				if (Class.CastTo(baseBuilding,ent) && baseBuilding.MustBeBuiltFromOutside() && baseBuilding.IsPlayerInsideEx(player, part.GetMainPartName()))
-					return false;
-				
-				//Camera check (client-only)
-				if (camera_check && !GetGame().IsDedicatedServer())
+				bool position_check = ( base_building.MustBeBuiltFromOutside() && !base_building.IsPlayerInside(player, constrution_part.GetMainPartName()) ) || ( !base_building.MustBeBuiltFromOutside() && base_building.IsPlayerInside(player, constrution_part.GetMainPartName()) );
+				if ( position_check && !player.GetInputController().CameraIsFreeLook() )
 				{
-					if (ent.IsFacingCamera(part.GetMainPartName()))
-						return false;
+					//Camera check (client-only)
+					if ( camera_check )
+					{
+						if ( g_Game && ( !g_Game.IsDedicatedServer() ) )
+						{
+							return !base_building.IsFacingCamera( constrution_part.GetMainPartName() );
+						}
+					}
+					
+					return true;
 				}
-				
-				return !player.GetInputController().CameraIsFreeLook();
 			}
 		}
 		
@@ -1069,43 +1015,6 @@ class MiscGameplayFunctions
 		int contact_component;
 		
 		return DayZPhysics.RaycastRV(from, to, contact_pos, contact_dir, contact_component, NULL, NULL, entity, false, false, geometry,0.25);
-	}
-
-	static bool IsUnder(EntityAI entity, array<typename> excludedTypes, out Object hitObj, float height = GameConstants.ROOF_CHECK_RAYCAST_DIST, int geometry = ObjIntersectIFire)
-	{
-		vector from;
-		vector to;
-		
-		IsUnderRoofFromToCalculation(entity, from, to, height);
-		
-		vector contactPos;
-		vector contactDir;
-		int contactComponent;
-		set<Object> objects = new set<Object>;
-		
-		if (DayZPhysics.RaycastRV(from, to, contactPos, contactDir, contactComponent, objects, NULL, entity, false, false, geometry, 0.25))
-		{
-			for (int i = 0; i < objects.Count(); ++i)
-			{
-				Object obj = objects.Get(i);
-				if (!obj)
-					continue;
-				
-				if (excludedTypes && excludedTypes.Count())
-				{
-					foreach (typename excludedType: excludedTypes)
-					{
-						if (obj.IsInherited(excludedType))
-							return false;
-					}
-				}
-			
-				hitObj = obj;
-				return true;
-			}
-		}
-		
-		return false;
 	}
 
 	// cooking equipment effects (get position for steam particle)
@@ -1176,10 +1085,10 @@ class MiscGameplayFunctions
 	
 	static vector GetRandomizedPositionVerifiedPlayer(Man player, float distance, float radius, Object ignore)
 	{
-		vector playerPosition = player.GetPosition();
-		vector playerHeadPos = MiscGameplayFunctions.GetPlayerHeadPosition(PlayerBase.Cast(player));
-		vector targetPos = playerPosition + (player.GetDirection() * distance);
-		return GetRandomizedPositionVerified(playerHeadPos, targetPos, radius, ignore);
+		vector startPos;
+		MiscGameplayFunctions.GetHeadBonePos(PlayerBase.Cast(player),startPos);
+		vector targetPos = player.GetPosition() + (player.GetDirection() * distance);
+		return GetRandomizedPositionVerified(startPos,targetPos,radius,ignore);
 	}
 	
 	static void DropAllItemsInInventoryInBounds(ItemBase ib, vector halfExtents)
@@ -1541,8 +1450,8 @@ class MiscGameplayFunctions
 	
 	static bool IsObjectObstructed(Object object, bool doDistanceCheck = false, vector distanceCheckPos = "0 0 0", float maxDist = 0)
 	{
-		PlayerBase player = PlayerBase.Cast(g_Game.GetPlayer());
-		vector rayStart = MiscGameplayFunctions.GetPlayerHeadPosition(player);
+		vector rayStart;
+		MiscGameplayFunctions.GetHeadBonePos(PlayerBase.Cast(g_Game.GetPlayer()), rayStart);
 		IsObjectObstructedCache cache = new IsObjectObstructedCache(rayStart, 1);
 
 		return IsObjectObstructedEx(object, cache, doDistanceCheck, distanceCheckPos, maxDist);
@@ -1840,19 +1749,19 @@ class MiscGameplayFunctions
 		
 		return false;
 	}
-
-	static void GenerateAINoiseAtPositionEx(notnull Object source, float lifeTime, NoiseParams noiseParams)
+	
+	static void GenerateAINoiseAtPosition(vector position, float lifeTime, NoiseParams noiseParams)
 	{
 		if (g_Game.IsServer())
 		{
 			NoiseSystem noise = g_Game.GetNoiseSystem();
 			if (noise)
 			{
-				noise.AddNoiseTarget(source.GetPosition(), lifeTime, noiseParams);
+				noise.AddNoiseTarget(position, lifeTime, noiseParams, NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather()));
 			}
 		}
 	}
-	
+
 	static float GetMinValue(array<float> pArray)
 	{
 		float minValue = 0.0;
@@ -1997,47 +1906,6 @@ class MiscGameplayFunctions
 		float value = snowfall + g_Game.GetWeather().GetWindMagnitude().GetActual() / windMax;
 		
 		return value;
-	}
-
-	static bool ComponentIdxContainsSelection(Object obj, int compIdx, string selName)
-	{
-		array<string> compNames = new array<string>;
-		obj.GetActionComponentNameList(compIdx, compNames);
-		foreach (string selection : compNames)
-		{
-			if (selection.Contains(selName))
-				return true;
-		}
-		
-		return false;
-	}
-
-	////////////////////////////
-	// deprecated - do not use
-	////////////////////////////
-	[Obsolete("Obsolete collision checking method, use the other 'ComplexBuildCollideCheckClient'")]
-	static bool ComplexBuildCollideCheckClient( PlayerBase player, ActionTarget target, ItemBase item, string partName = "" )
-	{
-		return true;
-	}
-	
-	[Obsolete("Obsolete collision checking method, use the other 'BuildCondition'")]
-	static bool BuildCondition( PlayerBase player, ActionTarget target, ItemBase item, bool camera_check )
-	{
-		return true;
-	}
-
-	[Obsolete("Use MiscGameplayFunctions.GenerateAINoiseAtPositionEx instead!")]
-	static void GenerateAINoiseAtPosition(vector position, float lifeTime, NoiseParams noiseParams)
-	{
-		if (GetGame().IsServer())
-		{
-			NoiseSystem noise = GetGame().GetNoiseSystem();
-			if (noise)
-			{
-				noise.AddNoiseTarget(position, lifeTime, noiseParams);
-			}
-		}
 	}
 }
 

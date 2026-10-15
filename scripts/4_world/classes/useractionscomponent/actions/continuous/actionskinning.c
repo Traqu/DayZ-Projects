@@ -77,7 +77,7 @@ class ActionSkinning: ActionContinuousBase
 		
 		if (body)
 		{
-			g_Game.GetCallQueue(CALL_CATEGORY_SYSTEM).Call(g_Game.ObjectDelete, body);
+			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Call(GetGame().ObjectDelete, body);
 		}
 		
 		MiscGameplayFunctions.DealAbsoluteDmg(action_data.m_MainItem, UADamageApplied.SKINNING);
@@ -92,9 +92,10 @@ class ActionSkinning: ActionContinuousBase
 	{
 		// Create item from config
 		ItemBase added_item;
-		vector posHead = MiscGameplayFunctions.GetPlayerHeadPosition(player);
+		vector posHead;
+		MiscGameplayFunctions.GetHeadBonePos(player,posHead);
 		vector posRandom = MiscGameplayFunctions.GetRandomizedPositionVerified(posHead,body_pos,UAItemsSpreadRadius.NARROW,player);
-		Class.CastTo(added_item, g_Game.CreateObjectEx(item_to_spawn, posRandom, ECE_PLACE_ON_SURFACE));
+		Class.CastTo(added_item,  GetGame().CreateObjectEx(item_to_spawn, posRandom, ECE_PLACE_ON_SURFACE));
 		
 		// Check if skinning is configured for this body
 		if (!added_item)
@@ -105,8 +106,8 @@ class ActionSkinning: ActionContinuousBase
 		array<float> quant_min_max = new array<float>;
 		array<float> quant_min_max_coef = new array<float>;
 		
-		g_Game.ConfigGetFloatArray(cfg_skinning_organ_class + "quantityMinMax", quant_min_max);
-		g_Game.ConfigGetFloatArray(cfg_skinning_organ_class + "quantityMinMaxCoef", quant_min_max_coef);
+		GetGame().ConfigGetFloatArray(cfg_skinning_organ_class + "quantityMinMax", quant_min_max);
+		GetGame().ConfigGetFloatArray(cfg_skinning_organ_class + "quantityMinMaxCoef", quant_min_max_coef);
 		
 		// Read config for quantity value
 		if (quant_min_max.Count() > 0)
@@ -121,10 +122,10 @@ class ActionSkinning: ActionContinuousBase
 			item_quantity = added_item.GetQuantityMax() * coef;
 		}
 		
-		if (g_Game.ConfigGetFloat(cfg_skinning_organ_class + "quantity") > 0)
+		if (GetGame().ConfigGetFloat(cfg_skinning_organ_class + "quantity") > 0)
 			item_quantity = g_Game.ConfigGetFloat(cfg_skinning_organ_class + "quantity");
 		
-		if (g_Game.ConfigGetFloat(cfg_skinning_organ_class + "quantityCoef") > 0)
+		if (GetGame().ConfigGetFloat(cfg_skinning_organ_class + "quantityCoef") > 0)
 		{
 			float coef2 = g_Game.ConfigGetFloat(cfg_skinning_organ_class + "quantityCoef");
 			item_quantity = added_item.GetQuantityMax() * coef2;
@@ -137,7 +138,7 @@ class ActionSkinning: ActionContinuousBase
 		}
 		
 		// Transfer tool's damage to the item's condition
-		float item_apply_tool_damage_coef = g_Game.ConfigGetFloat(cfg_skinning_organ_class + "transferToolDamageCoef");
+		float item_apply_tool_damage_coef = GetGame().ConfigGetFloat(cfg_skinning_organ_class + "transferToolDamageCoef");
 		
 		if (item_apply_tool_damage_coef > 0)
 		{
@@ -156,12 +157,11 @@ class ActionSkinning: ActionContinuousBase
 		
 		if (action_data.m_Target) 
 		{
-			Object targetObj = action_data.m_Target.GetObject();
+			Object target_obj = action_data.m_Target.GetObject();
 			
-			AnimalBase skinnedAnimal;
-			if (AnimalBase.CastTo(skinnedAnimal, targetObj) && skinnedAnimal.TrackNaturalInstinctsAchievement())
+			if (target_obj.IsKindOf("Animal_CapreolusCapreolus") || target_obj.IsKindOf("Animal_CapreolusCapreolusF") || target_obj.IsKindOf("Animal_CervusElaphus") || target_obj.IsKindOf("Animal_CervusElaphusF"))
 			{
-				g_Game.GetAnalyticsClient().OnActionFinishedGutDeer();
+				GetGame().GetAnalyticsClient().OnActionFinishedGutDeer();
 			}
 		}
 	}
@@ -172,8 +172,8 @@ class ActionSkinning: ActionContinuousBase
 		PlayerBase body;
 		if (Class.CastTo(body,action_data.m_Target.GetObject()))
 		{
-			if (body.IsRestrained() && body.GetEntityInHands())
-				MiscGameplayFunctions.TransformRestrainItem(body.GetEntityInHands(), null, action_data.m_Player, body);
+			if (body.IsRestrained() && body.GetHumanInventory().GetEntityInHands())
+				MiscGameplayFunctions.TransformRestrainItem(body.GetHumanInventory().GetEntityInHands(), null, action_data.m_Player, body);
 
 			//Remove splint if target is wearing one
 			if (body.IsWearingSplint())
@@ -282,8 +282,9 @@ class ActionSkinning: ActionContinuousBase
 				array<float> itemCount = new array<float>;
 				float zoneDmg = 0;
 				
-				g_Game.ConfigGetTextArray(cfgSkinningOrganClass + "itemZones", itemZones);
-				g_Game.ConfigGetFloatArray(cfgSkinningOrganClass + "countByZone", itemCount);
+				GetGame().ConfigGetTextArray(cfgSkinningOrganClass + "itemZones", itemZones);
+				GetGame().ConfigGetFloatArray(cfgSkinningOrganClass + "countByZone", itemCount);
+				float transferedPartDmgCoef = GetGame().ConfigGetFloat(cfgSkinningOrganClass + "transferPartDamageCoef");
 				
 				if (itemCount.Count() > 0)
 				{
@@ -296,8 +297,7 @@ class ActionSkinning: ActionContinuousBase
 					}
 				}
 				
-				float transferedPartDmgCoef = g_Game.ConfigGetFloat(cfgSkinningOrganClass + "transferPartDamageCoef");
-				if (transferedPartDmgCoef > 0 && itemSpawnCount <= 0) // Special behavior for headdresses
+				if (transferedPartDmgCoef > 0 && itemSpawnCount <= 0) // Special behavior for headdress
 					itemSpawnCount = 1;
 								
 				for (int i2 = 0; i2 < itemSpawnCount; i2++)
@@ -307,13 +307,11 @@ class ActionSkinning: ActionContinuousBase
 						continue;
 										
 					// Damage spawned result item based on the average health value of the body part
-					// It only works if the "transferPartDamageCoef" value in the config is higher than 0
+					// It only works if the "transferPartDamageCoef" value in the config is higher than 0 and result item is from type Headdress
 					if (transferedPartDmgCoef > 0)
 					{
 						float partHealth = 0;
 						float partMaxHealth = 0;
-						
-						//! We only use the first dmg zone to get and set the result item health based of zone health
 						for (int z2 = 0; z2 < itemZones.Count(); z2++)
 						{
 							partHealth = body.GetHealth(itemZones[z2], "Health");
@@ -322,11 +320,11 @@ class ActionSkinning: ActionContinuousBase
 						}
 						
 						if (partMaxHealth > 0)
-						{
+						{				
 							float itemMaxHealth = spawnResult.GetMaxHealth("", "Health");
 							float partHealthPercent = (partHealth / partMaxHealth) * 100;	
 							float itemHealth = (itemMaxHealth / 100) * partHealthPercent;
-							
+													
 							if (transferedPartDmgCoef > 1) // Makes sure to adjust incompatible parameter in the Skinning class of the agent
 								transferedPartDmgCoef = 1;
 							
@@ -337,7 +335,7 @@ class ActionSkinning: ActionContinuousBase
 					
 					//Damage pelts based on the average values on itemZones
 					//It only works if the "quantityCoef" in the config is more than 0 
-					float qtCoeff = g_Game.ConfigGetFloat(cfgSkinningOrganClass + "quantityCoef");
+					float qtCoeff = GetGame().ConfigGetFloat(cfgSkinningOrganClass + "quantityCoef");
 					if (qtCoeff > 0)
 					{
 						float avgDmgZones = 0;

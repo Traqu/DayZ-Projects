@@ -262,6 +262,10 @@ class Container extends LayoutHolder
 			icon.GetRadialIcon().Show(open);
 			icon.GetRadialIconClosed().Show(!open);
 		}
+		/*else
+		{
+			ErrorEx("Dbg No Icon");
+		}*/
 	}
 	
 	void Toggle()
@@ -1269,14 +1273,14 @@ class Container extends LayoutHolder
 
 	void HideContent( bool force_hide = false )
 	{
-		if (!m_ForcedHide)
+		if( !m_ForcedHide )
 		{
 			m_ForcedHide = force_hide;
 		}
-		
-		foreach (LayoutHolder child : m_Body)
+		for(int i = 0; i < m_Body.Count(); i++)
 		{
-			child.OnHide();
+			if( m_Body.Get( i ) )
+				m_Body.Get( i ).OnHide();
 		}
 	}
 	

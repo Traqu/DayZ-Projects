@@ -57,7 +57,6 @@ class CAContinuousQuantityRepeat : CAContinuousBase
 				{
 					CalcAndSetQuantity( action_data );
 					Setup(action_data);	//reset data after repeat
-					OnCompletePogress(action_data);
 				}
 				
 				return UA_PROCESSING;

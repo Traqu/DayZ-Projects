@@ -62,7 +62,6 @@ class ServerBrowserHelperFunctions
 		INTERNAL_MAP_NAMES.Insert("chernarusplus", "Chernarus");
 		INTERNAL_MAP_NAMES.Insert("enoch", "Livonia");
 		INTERNAL_MAP_NAMES.Insert("sakhal", "Sakhal");
-		INTERNAL_MAP_NAMES.Insert("nasdara", "Nasdara");
 	}
 	
 	// Use this function to add maps to the server browser map filter options
@@ -193,7 +192,7 @@ class GetServersResultRow
 	string	m_UpdatedAt;
 	bool	m_MouseAndKeyboardEnabled;
 	bool	m_WhitelistEnabled;
-	int		m_DLCs;
+	bool	m_IsDLC;
 	
 	//Scripted
 	bool		m_IsExpanded;
@@ -405,7 +404,7 @@ class GetServersInput
 	string		m_FavoriteServers;
 	bool		m_MouseAndKeyboardEnabled;
 	bool		m_WhitelistEnabled;
-	int			m_DLCs;
+	bool		m_IsDLC;
 
 	bool m_UseAntiCheat;
 	bool m_UseName;
@@ -428,7 +427,7 @@ class GetServersInput
 	bool m_UseHostIps;
 	bool m_UseMouseAndKeyboardEnabled;
 	bool m_UseWhitelistEnabled;
-	bool m_UseDLCs;
+	bool m_UseIsDLC;
 	
 	void SetAntiCheatFilter( bool anti_cheat )
 	{
@@ -643,10 +642,13 @@ class GetServersInput
 		AddShow(whitelistEnabled);
 	}
 	
-	void SetDLCs(int dlcs)
+	void SetIsDLC(bool isDLC)
 	{
-		m_DLCs = dlcs;
-		m_UseDLCs = true;
+		m_IsDLC = isDLC;
+		m_UseIsDLC = true;
+		
+		m_SortBy += "D";
+		AddShow(isDLC);
 	}
 };
 

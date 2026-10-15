@@ -86,7 +86,7 @@ class ContainerLockedBase : BuildingSuper
 		string selectionName = string.Format("side%1_lock",(doorIdx + 1));
 		SetAnimationPhase(selectionName,1);
 		
-		if (!g_Game.IsHeadlessOrDedicatedServer())
+		if (!g_Game.IsDedicatedServer())
 			SEffectManager.PlaySoundEnviroment("Land_ContainerLocked_lock_SoundSet",GetDoorSoundPos(doorIdx));
 	}
 	
@@ -134,13 +134,5 @@ class Land_ContainerLocked_Red_DE : ContainerLockedBase
 	override int GetLockCompatibilityType(int doorIdx)
 	{
 		return 1 << EBuildingLockType.SHIP_CONTAINER_3;
-	}
-}
-
-class Land_Mil_ContainerHabitat_Armory_Locked_Green_DE : ContainerLockedBase
-{
-	override int GetLockCompatibilityType(int doorIdx)
-	{
-		return 1 << EBuildingLockType.SHIP_CONTAINER_4;
 	}
 }

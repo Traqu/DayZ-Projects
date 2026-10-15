@@ -1,4 +1,3 @@
-#ifdef ROBOCLIENT
 class BotTestItemMoveBackAndForth extends BotStateBase
 {
 	EntityAI m_Entity;
@@ -106,7 +105,7 @@ class BotTestItemMoveBackAndForth_MoveFromSlotToSlot extends BotStateBase
 
 						m_WaitingForSlot = nextSlot;
 
-						m_Owner.PredictiveTakeEntityToTargetAttachmentEx(m_Owner, m_Entity, nextSlot);
+						m_Owner.PredictiveTakeEntityAsAttachmentEx(m_Entity, nextSlot);
 						//m_Bot.ProcessEvent(new BotEventEntityDet(m_Owner, m_Entity));
 					}
 				}
@@ -114,4 +113,4 @@ class BotTestItemMoveBackAndForth_MoveFromSlotToSlot extends BotStateBase
 		}
 	}
 };
-#endif
+

@@ -457,12 +457,9 @@ class ServerBrowserEntry extends ScriptedWidgetEventHandler
 
 	void RefreshDLCIcon()
 	{
-		if (m_ServerData && m_ServerData.m_DLCs != EDLCId.UNKNOWN)
+		if (m_ServerData.m_IsDLC)
 		{
-			string mapNM = GetMapToRun();
-			ContentDLC contentDLC = g_Game.GetContentDLCService();
-			EDLCId dlcId = contentDLC.GetDLCFromWorld(mapNM);
-			bool own = contentDLC.IsDLCInstalled(dlcId);
+			bool own = g_Game.VerifyWorldOwnership(GetMapToRun());
 			m_ServerModIcon.Show(true);
 			m_ServerModIcon.FindWidget("Owned").Show(own);
 			m_ServerModIcon.FindWidget("Unowned").Show(!own);

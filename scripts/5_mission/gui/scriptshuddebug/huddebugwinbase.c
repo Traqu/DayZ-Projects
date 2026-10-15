@@ -4,10 +4,6 @@ class HudDebugWinBase
 	protected bool m_Show;
 	protected bool m_RPCSent;
 	
-	PluginConfigDebugProfile m_ConfigDebugProfile;
-	bool m_IsDragging;
-	vector m_DraggingOffset;
-	
 	//============================================
 	// Constructor
 	//============================================
@@ -28,7 +24,7 @@ class HudDebugWinBase
 	
 	void SetUpdate( bool state );
 	
-	void Update(float timeslice)
+	void Update()
 	{
 		if(m_Show && !m_RPCSent)
 		{
@@ -43,8 +39,8 @@ class HudDebugWinBase
 	void SetRPCSent()
 	{
 		m_RPCSent = true;
-	
 	}
+	
 	
 	//============================================
 	// Show
@@ -84,37 +80,16 @@ class HudDebugWinBase
 	//============================================
 	// SetSize
 	//============================================
-	void SetValueListSize(int x, int y, Widget wgt)
+	void SetValueListSize( int x, int y, TextListboxWidget wgt )
 	{
 		int offset = 10;	
-		int sizeOfTitle = 20;
+		int size_of_title = 20;
 		
-		wgt.SetSize(x, y);
+		wgt.SetSize( x, y );
 		
-		int rootSizex = x + (2 * offset);
-		int rootSizeY = y + (2 * offset) + sizeOfTitle;
+		int root_size_x = x + ( 2 * offset );
+		int root_size_y = y + ( 2 * offset ) + size_of_title;
 		
-		m_WgtRoot.SetSize(rootSizex, rootSizeY);
+		m_WgtRoot.SetSize( root_size_x, root_size_y );
 	}
-	
-	void SetDragging(bool enable)
-	{
-		if(enable && !m_IsDragging)
-			OnDraggingStart();
-		else if (!enable && m_IsDragging)
-			OnDraggingEnd();
-		m_IsDragging = enable;
-	}
-	
-	void OnDraggingStart()
-	{
-		int mx, my;
-		float wx, wy;
-		GetMousePos(mx, my);
-		m_WgtRoot.GetScreenPos(wx, wy);
-		m_DraggingOffset[0] = wx - mx;
-		m_DraggingOffset[1] = wy - my;
-	}
-	
-	void OnDraggingEnd();
 }

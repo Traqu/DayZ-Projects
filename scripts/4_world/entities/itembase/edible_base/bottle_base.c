@@ -234,7 +234,6 @@ class Bottle_Base extends Edible_Base
 	void ParticleCookingStart(int particle_id)
 	{
 		#ifndef SERVER
-		#ifndef NO_GUI
 		if (m_ParticlePlaying != particle_id)
 		{
 			//stop previous particles
@@ -247,12 +246,11 @@ class Bottle_Base extends Edible_Base
 		
 		}
 		#endif
-		#endif
 	}
 	
 	void ParticleCookingStop()
 	{
-		if (m_ParticleCooking && g_Game && !g_Game.IsHeadlessOrDedicatedServer())
+		if (m_ParticleCooking && g_Game && !g_Game.IsDedicatedServer())
 		{
 			m_ParticleCooking.Stop();
 			m_ParticleCooking = null;
@@ -361,17 +359,15 @@ class Bottle_Base extends Edible_Base
 		AddAction(ActionFillCoolant);
 		AddAction(ActionFillGeneratorTank);
 		AddAction(ActionExtinguishFireplaceByLiquid);
-		AddAction(ActionObtainLiquidBase);
+		AddAction(ActionFillBottleBase);
 		AddAction(ActionFillBottleSnow);
 		AddAction(ActionWaterGardenSlot);
 		AddAction(ActionWaterPlant);
 		AddAction(ActionForceDrink);
 		AddAction(ActionDrainLiquid);
 		AddAction(ActionPourLiquid);
-		AddAction(ActionDrink);
 		AddAction(ActionWashHandsItemContinuous);
-		AddAction(ActionWashHeadItemContinuous);
-		AddAction(ActionWetClothingFromContainer);
+		AddAction(ActionDrink);
 		AddAction(ActionEmptyBottleBase);
 	}
 	

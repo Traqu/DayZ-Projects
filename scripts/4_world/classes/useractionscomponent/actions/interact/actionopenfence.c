@@ -57,10 +57,7 @@ class ActionOpenFence: ActionInteractBase
 		if ( noise )
 		{
 			if ( action_data.m_Player )
-			{
-				Object targetObj = action_data.m_Target.GetObject();
-				noise.AddNoisePos(action_data.m_Player, targetObj.GetPosition(), m_NoisePar);
-			}
+				noise.AddNoisePos(action_data.m_Player, action_data.m_Target.GetObject().GetPosition(), m_NoisePar, NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather()));
 		}
 	}
 }

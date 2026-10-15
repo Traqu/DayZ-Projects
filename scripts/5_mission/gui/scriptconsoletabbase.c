@@ -10,13 +10,8 @@ class ScriptConsoleTabBase
 	protected ScriptConsoleTabBase m_Parent;//for subtabs
 	protected PluginConfigDebugProfile m_ConfigDebugProfile;
 	protected PluginConfigDebugProfileFixed m_ConfigDebugProfileFixed;
-		
-	void Init(int id)
-	{
-		m_Id = id;
-	}
 	
-	void InitializeTab(Widget root, ScriptConsole console, Widget button, ScriptConsoleTabBase parent = null)
+	void ScriptConsoleTabBase(Widget root, ScriptConsole console, Widget button, ScriptConsoleTabBase parent = null)
 	{
 		m_Button = button;
 		m_ScriptConsole = console;
@@ -26,7 +21,12 @@ class ScriptConsoleTabBase
 		else
 			m_ParentRoot = console.layoutRoot;
 		m_ConfigDebugProfile = PluginConfigDebugProfile.Cast(GetPlugin(PluginConfigDebugProfile));
-		m_ConfigDebugProfileFixed = PluginConfigDebugProfileFixed.Cast(GetPlugin(PluginConfigDebugProfileFixed));
+		m_ConfigDebugProfileFixed	= PluginConfigDebugProfileFixed.Cast(GetPlugin(PluginConfigDebugProfileFixed));
+	}
+	
+	void Init(int id)
+	{
+		m_Id = id;
 	}
 	
 	int GetID()
@@ -50,6 +50,9 @@ class ScriptConsoleTabBase
 		if (m_Root)
 		{
 			Show(select, selectedHandler);
+			ButtonWidget btn = ButtonWidget.Cast(m_Button);
+			if (btn)
+				btn.SetState(select);
 		}
 		if (select)
 			OnSelected();
@@ -94,7 +97,4 @@ class ScriptConsoleTabBase
 			g_Game.CopyToClipboard(item_name);
 		}
 	}
-	
-	void OnInputDeviceChanged(EInputDeviceType pInputDeviceType);
-	//void PressA();
 }

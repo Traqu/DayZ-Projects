@@ -11,10 +11,8 @@ class AnniversaryMusicSource : Building
 	private const string SOUND_LIGHT 	= "AnniversaryMusic_Light_SoundSet";
 
 	#ifndef SERVER
-	#ifndef NO_GUI
 	protected EffectSound m_LightAmbientSound;
 	protected EffectSound m_IntenseAmbientSound;
-	#endif
 	#endif
 		
 	protected int m_MusicState;
@@ -33,13 +31,11 @@ class AnniversaryMusicSource : Building
 		super.EEDelete(parent);
 		
 		#ifndef SERVER
-		#ifndef NO_GUI
 		if (m_LightAmbientSound)
 			SEffectManager.DestroyEffect(m_LightAmbientSound);
 		
 		if (m_IntenseAmbientSound)
 			SEffectManager.DestroyEffect(m_IntenseAmbientSound);
-		#endif
 		#endif
 	}
 	
@@ -51,9 +47,7 @@ class AnniversaryMusicSource : Building
 		{
 			m_MusicStateLocal = m_MusicState;
 			#ifndef SERVER
-			#ifndef NO_GUI
 			UpdateMusic();
-			#endif
 			#endif
 		}
 	}
@@ -61,13 +55,11 @@ class AnniversaryMusicSource : Building
 	void UpdateMusic()
 	{
 		#ifndef SERVER
-		#ifndef NO_GUI
 		if (!m_IntenseAmbientSound)
 			m_IntenseAmbientSound = SEffectManager.CreateSound(SOUND_INTENSE, GetPosition(), 0.5, 0.5, false);
 		
 		if (!m_LightAmbientSound)
 			m_LightAmbientSound = SEffectManager.CreateSound(SOUND_LIGHT, GetPosition(), 0.5, 0.5, true);
-		#endif
 		#endif
 
 		switch (m_MusicState)
@@ -110,30 +102,24 @@ class AnniversaryMusicSource : Building
 	void PlayIntense()
 	{
 		#ifndef SERVER
-		#ifndef NO_GUI
 		m_LightAmbientSound.SoundStop();
 		m_IntenseAmbientSound.SoundPlay();
-		#endif
 		#endif
 	}
 	
 	void PlayLight()
 	{
 		#ifndef SERVER
-		#ifndef NO_GUI
 		m_IntenseAmbientSound.SoundStop();
 		m_LightAmbientSound.SoundPlay();
-		#endif
 		#endif
 	}
 	
 	void StopAllMusic()
 	{
 		#ifndef SERVER
-		#ifndef NO_GUI
 		m_IntenseAmbientSound.SoundStop();
 		m_LightAmbientSound.SoundStop();
-		#endif
 		#endif
 	}
 }

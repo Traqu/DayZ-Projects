@@ -94,9 +94,9 @@ class RemoteDetonatorTrigger : RemoteDetonator
 		return m_RAIB;
 	}
 	
-	override void OnCEIterate(float currentTime, float elapsedTime)
+	override void OnCEUpdate()
 	{
-		super.OnCEIterate(currentTime, elapsedTime);
+		super.OnCEUpdate();
 		
 		if (!IsRuined() && IsConnected() && GetControlledDevice())
 		{

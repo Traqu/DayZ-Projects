@@ -25,28 +25,13 @@ class ActionWashHandsWater : ActionContinuousBase
 	override void CreateConditionComponents()
 	{		
 		m_ConditionItem		= new CCINone();
-		m_ConditionTarget 	= new CCTLiquid(LIQUID_GROUP_WATER - LIQUID_SNOW - LIQUID_HOTWATER, UAMaxDistances.DEFAULT, UAMaxDistances.DEFAULT);
+		m_ConditionTarget 	= new CCTWaterSurfaceEx(UAMaxDistances.DEFAULT, LIQUID_GROUP_WATER - LIQUID_SNOW);
 	}
 
 	override bool ActionCondition(PlayerBase player, ActionTarget target, ItemBase item)
 	{
-		//! Other conditions are handled in CCTLiquid
-		if (item && item.IsHeavyBehaviour()) //! Don't allow washing hands with heavy items in hands
-			return false;
-		
-		return (player.HasBloodyHands() && !player.GetItemOnSlot("Gloves"));
-	}
-	
-	override void OnStart(ActionData action_data)
-	{
-		super.OnStart(action_data);
-		
-		action_data.m_Player.TryHideItemInHands(true);
-	}
-	
-	override void OnEnd(ActionData action_data)
-	{
-		action_data.m_Player.TryHideItemInHands(false);
+		// Other conditions are in CCTWaterSurface
+		return (player.HasBloodyHands() && !player.GetItemInHands() && !player.GetItemOnSlot("Gloves"));
 	}
 	
 	override void OnFinishProgressServer( ActionData action_data )
@@ -54,10 +39,5 @@ class ActionWashHandsWater : ActionContinuousBase
 		PluginLifespan moduleLifespan = PluginLifespan.Cast(GetPlugin(PluginLifespan));
 		moduleLifespan.UpdateBloodyHandsVisibility(action_data.m_Player, false);
 		action_data.m_Player.ClearBloodyHandsPenaltyChancePerAgent(eAgents.SALMONELLA);
-	}
-	
-	override bool IsLockTargetOnUse()
-	{
-		return false;
 	}
 }

@@ -7,8 +7,6 @@ class CrashBase extends House
 	{
 		CrashSoundSets.RegisterSoundSet("HeliCrash_Distant_SoundSet");
 		CrashSoundSets.RegisterSoundSet("SledgeCrash_Distant_SoundSet");
-		CrashSoundSets.RegisterSoundSet("HeliCrash_big_SoundSet");
-		CrashSoundSets.RegisterSoundSet("HeliCrash_big_no_explosions_SoundSet");
 		return true;
 	}
 	
@@ -45,7 +43,7 @@ class CrashBase extends House
 
 	override void EEDelete(EntityAI parent)
 	{
-		if ( !g_Game.IsHeadlessOrDedicatedServer() )
+		if ( !g_Game.IsDedicatedServer() )
 		{
 			if ( m_ParticleEfx )
 				m_ParticleEfx.Stop();

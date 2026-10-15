@@ -1,5 +1,3 @@
-//!DEPRECATED
-[Obsolete("1.30: Not used!")]
 class ActionWashHandsWaterOneCB : ActionInteractLoopBaseCB
 {
 	override void CreateActionComponent()
@@ -8,7 +6,7 @@ class ActionWashHandsWaterOneCB : ActionInteractLoopBaseCB
 	}
 };
 
-[Obsolete("1.30: Not used and not registered in action constructor!")]
+//!DEPRECATED
 class ActionWashHandsWaterOne extends ActionInteractLoopBase
 {
 	void ActionWashHandsWaterOne()
@@ -23,12 +21,12 @@ class ActionWashHandsWaterOne extends ActionInteractLoopBase
 	override void CreateConditionComponents()  
 	{		
 		m_ConditionItem = new CCINone;
-		m_ConditionTarget = new CCTLiquid(LIQUID_GROUP_WATER, UAMaxDistances.DEFAULT, UAMaxDistances.DEFAULT);
+		m_ConditionTarget = new CCTWaterSurfaceEx(UAMaxDistances.DEFAULT, LIQUID_GROUP_WATER);
 	}
 
 	override bool ActionCondition( PlayerBase player, ActionTarget target, ItemBase item )
 	{
-		// Other conditions are in CCTLiquid
+		// Other conditions are in CCTWaterSurface
 		return ( g_Game.IsMultiplayer() && g_Game.IsServer() ) || ( player.HasBloodyHands() && !player.GetItemInHands() && !player.GetItemOnSlot("Gloves") );
 	}
 

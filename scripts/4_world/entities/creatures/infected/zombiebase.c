@@ -36,7 +36,7 @@ class ZombieBase extends DayZInfected
 	protected bool m_FinisherInProgress = false; //is this object being backstabbed?
 	
 	protected ref ArrowManagerBase m_ArrowManager;
-	protected ref DustEffectCeilingHandlerLocal m_CeilingDustHandler;
+
 
 
 	//-------------------------------------------------------------
@@ -51,7 +51,7 @@ class ZombieBase extends DayZInfected
 		
 		m_IsCrawling = false;
 		
-		RegisterNetSyncVariableInt("m_MindState", -1, 5);
+		RegisterNetSyncVariableInt("m_MindState", -1, 4);
 		RegisterNetSyncVariableInt("m_OrientationSynced", 0, 359);
 		RegisterNetSyncVariableFloat("m_MovementSpeed", -1, 3);
 		RegisterNetSyncVariableBool("m_IsCrawling");
@@ -60,7 +60,7 @@ class ZombieBase extends DayZInfected
 		m_DefaultHitPosition = SetDefaultHitPosition(GetDayZInfectedType().GetDefaultHitPositionComponent());
 
 		//! client only
-		if ( !g_Game.IsHeadlessOrDedicatedServer() )
+		if ( !g_Game.IsDedicatedServer() )
 		{
 			m_LastSoundVoiceAW 			= null;
 			m_InfectedSoundEventHandler = new InfectedSoundEventHandler(this);
@@ -470,12 +470,6 @@ class ZombieBase extends DayZInfected
 				if ( moveCommand && !moveCommand.IsTurning() && (m_LastMindState < DayZInfectedConstants.MINDSTATE_CHASE) )
 					moveCommand.SetIdleState(2);
 				break;
-
-			//! sandstorm cowering, movement is already stopped by the AI, hold the calm idle pose
-			case DayZInfectedConstants.MINDSTATE_COWER:
-				if ( moveCommand && !moveCommand.IsTurning() )
-					moveCommand.SetIdleState(0);
-				break;
 			}
 			
 			m_LastMindState = m_MindState;
@@ -534,7 +528,7 @@ class ZombieBase extends DayZInfected
 		SoundParams			soundParams;
 		SoundObjectBuilder	soundObjectBuilder;
 		SoundObject			soundObject;
-		if (!g_Game.IsHeadlessOrDedicatedServer())
+		if (!g_Game.IsDedicatedServer())
 		{
 			soundParams = new SoundParams( pSoundSetName );
 			if ( !soundParams.IsValid() )
@@ -582,7 +576,7 @@ class ZombieBase extends DayZInfected
 	
 	protected void ProcessSoundVoiceEvent(AnimSoundVoiceEvent sound_event, out AbstractWave aw)
 	{
-		if (!g_Game.IsHeadlessOrDedicatedServer())
+		if (!g_Game.IsDedicatedServer())
 		{
 			SoundObjectBuilder objectBuilder = sound_event.GetSoundBuilder();
 			if (NULL != objectBuilder)
@@ -597,7 +591,7 @@ class ZombieBase extends DayZInfected
 		if (g_Game.IsServer())
 		{
 			if (sound_event.m_NoiseParams != NULL)
-				GetGame().GetNoiseSystem().AddNoise(this, sound_event.m_NoiseParams);
+				g_Game.GetNoiseSystem().AddNoise(this, sound_event.m_NoiseParams, NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather()));
 		}
 	}
 	
@@ -767,39 +761,33 @@ class ZombieBase extends DayZInfected
 
 	int GetAttackPitch(EntityAI target)
 	{
-		const float CENTER_EPS = 0.3;
-		const float TORSO_TO_HEAD_OFFSET = 0.55; // for non-player fallback
-	
-		// Approximate infected head height
-		float myHeadY = GetPosition()[1] + 1.8;
-	
-		float targetY;
-		PlayerBase playerTarget = PlayerBase.Cast(target);
-		if (playerTarget)
+		vector attackRefPos;
+
+		attackRefPos = target.GetDefaultHitPosition();
+		//! no default hit pos fallback
+		if ( attackRefPos != vector.Zero )
 		{
-			// Stance-aware head pos
-			targetY = MiscGameplayFunctions.GetPlayerHeadPosition(playerTarget)[1];
+			attackRefPos = target.ModelToWorld(attackRefPos);
 		}
 		else
 		{
-			// Non-player: use torso default hit pos, lift toward head
-			vector def = target.GetDefaultHitPosition();
-			if (def != vector.Zero)
-				targetY = target.ModelToWorld(def)[1] + TORSO_TO_HEAD_OFFSET;
-			else
-				targetY = target.GetPosition()[1] + 1.0; // last resort
+			attackRefPos = target.GetPosition();
 		}
-	
-		float diff = Math.AbsFloat(targetY - myHeadY);
-		if (diff < CENTER_EPS)
+
+		// Now we have only erect stance, we need to get head position later too
+		float headPosY = GetPosition()[1];
+		headPosY += 1.8;
+		
+		float diff = Math.AbsFloat(attackRefPos[1] - headPosY);
+		
+		if ( diff < 0.3 )
 			return 0;
-	
-		if(myHeadY > targetY) 
+		
+		if ( headPosY > attackRefPos[1] )
 			return -1;
 		else
 			return 1;
 	}
-	
 		
 	//-------------------------------------------------------------
 	//!
@@ -1150,51 +1138,6 @@ class ZombieBase extends DayZInfected
 	override ArrowManagerBase GetArrowManager()
 	{
 		return m_ArrowManager;
-	}
-	
-	override void OnStepEvent(int event_id, string event_user_string) 
-	{
-		super.OnStepEvent(event_id, event_user_string);
-
-		SurfaceInfo surfaceInfo;
-		if (event_id % 2 == 0)
-		{
-			surfaceInfo = g_Game.GetSurfaceInfoUnderObjectByBone(this, SurfaceAnimationBone.LeftBackLimb);
-		}
-		else if (event_id % 2 == 1)
-		{
-			surfaceInfo = g_Game.GetSurfaceInfoUnderObjectByBone(this, SurfaceAnimationBone.RightBackLimb);
-		}
-		
-		//string surface;
-		if(surfaceInfo)
-		{
-			vector orientation;
-			
-			if (event_id >= GameConstants.AI_SPRINT_STEP_MIN_ID && event_id <= GameConstants.AI_SPRINT_STEP_MAX_ID)
-			{
-				int stepParticleID = surfaceInfo.GetStepParticleId();
-				if (stepParticleID > 0)
-				{
-					orientation = GetOrientation() * (-1);
-					ParticleManager.GetInstance().PlayInWorldEx(stepParticleID, null, GetPosition(), orientation);
-				}
-			}
-			
-			HandleCeilingDustStepEffect(surfaceInfo);
-		}
-	}
-	
-	protected void HandleCeilingDustStepEffect(SurfaceInfo surfaceInfo)
-	{
-		//non-player entity, only local
-		if (!GetGame().IsDedicatedServer())
-		{
-			if (!m_CeilingDustHandler)
-				m_CeilingDustHandler = new DustEffectCeilingHandlerLocal(this);
-			
-			m_CeilingDustHandler.OnStepUpdate(surfaceInfo);
-		}
 	}
 }
 

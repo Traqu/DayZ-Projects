@@ -1,10 +1,5 @@
 class MotoHelmet_ColorBase extends HelmetBase
 {
-	override ECachedEquipmentItemCategory GetCachedEquipmentCategory()
-	{
-		return ECachedEquipmentItemCategory.MASK;
-	}
-
 	override array<int> GetEffectWidgetTypes()
 	{
 		return {EffectWidgetsTypes.MOTO_OCCLUDER/*,EffectWidgetsTypes.MOTO_BREATH*/};

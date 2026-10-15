@@ -15,16 +15,9 @@ class Land_Misc_Through_Static : BuildingSuper
 		super.SetActions();
 		
 		RemoveAction(ActionDrink);
-		RemoveAction(ActionDrinkPondContinuous);
-		
+
 		AddAction(ActionWashHandsWell);
 		AddAction(ActionDrinkThroughContinuous);
-		AddAction(ActionObtainLiquidBase);
-	}
-	
-	override void SetActionAnimOverrides()
-	{
-		OverrideActionAnimation(ActionObtainLiquidBase, DayZPlayerConstants.CMD_ACTIONFB_FILLBOTTLEPOND, DayZPlayerConstants.STANCEMASK_CROUCH);
-		OverrideActionAnimation(ActionWashHandsWell, DayZPlayerConstants.CMD_ACTIONFB_WASHHANDSPOND, DayZPlayerConstants.STANCEMASK_CROUCH);
+		AddAction(ActionFillBottleBase);
 	}
 }

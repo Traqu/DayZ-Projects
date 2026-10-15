@@ -113,14 +113,12 @@ class InventoryItem extends EntityAI
 	// -------------------------------------------------------------------------------
 	protected void InitImpactSoundData()
 	{
-        #ifndef SERVER
-		#ifndef NO_GUI
+		#ifndef SERVER
 		string soundImpactType = "default";
 		if ( ConfigIsExisting("soundImpactType") )
 			soundImpactType = ConfigGetString("soundImpactType");
 		
 		m_SoundImpactTable = AnimSoundLookupTableBank.GetInstance().GetImpactTable(soundImpactType + "_Impact_LookupTable");
-		#endif
 		#endif
 	}
 	

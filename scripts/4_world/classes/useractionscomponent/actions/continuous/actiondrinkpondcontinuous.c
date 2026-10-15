@@ -11,8 +11,6 @@ class ActionDrinkPondContinuous : ActionContinuousBase
 	private const float WATER_DRANK_PER_SEC = 35;
 	protected const string ALLOWED_WATER_SURFACES = string.Format("%1|%2", UAWaterType.FRESH, UAWaterType.STILL);
 	
-	//protected ref TTypenameArray m_IgnoredObjectTypes = new TTypenameArray();
-	
 	void ActionDrinkPondContinuous()
 	{
 		m_CallbackClass 	= ActionDrinkPondContinuousCB;
@@ -40,19 +38,14 @@ class ActionDrinkPondContinuous : ActionContinuousBase
 	override void CreateConditionComponents()  
 	{
 		m_ConditionItem 	= new CCINone();
-		m_ConditionTarget 	= new CCTLiquid(LIQUID_GROUP_DRINKWATER - LIQUID_SNOW - LIQUID_HOTWATER, UAMaxDistances.DEFAULT, UAMaxDistances.DEFAULT);
+		m_ConditionTarget 	= new CCTWaterSurfaceEx(UAMaxDistances.DEFAULT, LIQUID_GROUP_DRINKWATER - LIQUID_SNOW - LIQUID_HOTWATER);
 	}
 	
 	override bool ActionCondition(PlayerBase player, ActionTarget target, ItemBase item)
-	{
-		//! Other conditions are handled in CCTLiquid
-		//! If object is a specified water source object type we ignore it as it's liquid source handling is handled by a different action and conditions 
-		if (target.GetObject() && target.GetObject().GetWaterSourceObjectType() != EWaterSourceObjectType.NONE)
+	{	
+		if (item && item.IsHeavyBehaviour())
 			return false;
 		
-		if (item && item.IsHeavyBehaviour()) //! Don't allow drinking with hands with heavy items in hands
-			return false;
-			
 		return player.CanEatAndDrink();
 	}
 
@@ -74,7 +67,7 @@ class ActionDrinkPondContinuous : ActionContinuousBase
 		if (nacdata)
 		{
 			EConsumeType consumeType;
-			int liquidSource = CCTLiquid.Cast(m_ConditionTarget).GetLiquidType();
+			int liquidSource = GetLiquidSource(action_data.m_Target);
 			switch (liquidSource)
 			{
 				case LIQUID_CLEANWATER:
@@ -127,13 +120,6 @@ class ActionDrinkPondContinuous : ActionContinuousBase
 		return true;
 	}
 	
-	override bool IsLockTargetOnUse()
-	{
-		return false;
-	}
-	
-	//! DEPRECATED
-	[Obsolete("1.30: No replacement. Method is no longer needed as liquid source is now checked and provided by the CCTLiquid target condition.")]
 	protected int GetLiquidSource(ActionTarget target)
 	{
 		vector hitPosition = target.GetCursorHitPos();

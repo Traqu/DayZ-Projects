@@ -48,9 +48,7 @@ class OptionSelectorSliderSetup extends OptionSelectorBase
 			ColorNormal(w);
 			#endif
 			OnFocusLost(w, x, y);
-			#ifdef PLATFORM_WINDOWS
 			SetFocus(null);
-			#endif
 		}
 			
 		return true;

@@ -62,8 +62,7 @@ class ActionCreateIndoorOven: ActionSingleUseBase
 		
 	override void OnExecuteServer( ActionData action_data )
 	{	
-		BuildingWithFireplace buildingFireplace = BuildingWithFireplace.Cast(action_data.m_Target.GetObject());
-		Object obj = g_Game.CreateObjectEx(buildingFireplace.GetOvenType(0), action_data.m_Player.GetLastFirePoint(), ECE_PLACE_ON_SURFACE );
+		Object obj = g_Game.CreateObjectEx( "OvenIndoor", action_data.m_Player.GetLastFirePoint(), ECE_PLACE_ON_SURFACE );
 	
 		int m_FirePointIndex = action_data.m_Player.GetLastFirePointIndex();
 		float m_FireplaceRot = action_data.m_Player.GetLastFirePointRot();

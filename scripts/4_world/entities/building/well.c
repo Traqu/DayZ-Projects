@@ -5,6 +5,11 @@ class Well extends BuildingSuper
 		return false;
 	}
 	
+	override bool IsWell()
+	{
+		return GetWaterSourceObjectType() == EWaterSourceObjectType.WELL;
+	}
+	
 	override EWaterSourceObjectType GetWaterSourceObjectType()
 	{
 		return EWaterSourceObjectType.WELL;
@@ -26,12 +31,5 @@ class Well extends BuildingSuper
 		
 		AddAction(ActionWashHandsWell);
 		AddAction(ActionDrinkWellContinuous);
-		AddAction(ActionWashHeadWell);
-		AddAction(ActionWetClothingInHandsWell);
-	}
-	
-	override void SetActionAnimOverrides()
-	{
-		OverrideActionAnimation(ActionObtainLiquidBase, DayZPlayerConstants.CMD_ACTIONFB_FILLBOTTLEWELL, DayZPlayerConstants.STANCEMASK_CROUCH);
 	}
 }

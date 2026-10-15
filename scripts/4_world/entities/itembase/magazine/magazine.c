@@ -131,8 +131,6 @@ class Magazine : InventoryItemSuper
 		}
 	}
 	
-	protected void UpdateAnimation();
-	
 	bool IsCompatiableAmmo( ItemBase ammo )
 	{
 		if ( m_CompatiableAmmo && ammo )
@@ -159,7 +157,7 @@ class Magazine : InventoryItemSuper
 	//! returns max rounds for this mag (returns "count" config value)
 	int GetAmmoMax()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_Count;
+		return m_Count;
 	}
 	//! set max rounds for this mag
 	void ServerSetAmmoMax()
@@ -176,30 +174,7 @@ class Magazine : InventoryItemSuper
 		return true;
 	}
 	
-	//! Used for when we shoot
-	bool LocalAcquireCartridgeEx(out float ammoDamage, out string cartTypeName)
-	{
-		bool changeAmmoCount = LocalAcquireCartridge(ammoDamage, cartTypeName);
-		UpdateAnimation();
-		return changeAmmoCount;
-	}
-
-	//! Used for when we load a magazine manually
-	bool ServerAcquireCartridgeEx(out float ammoDamage, out string cartTypeName)
-	{
-		bool changeAmmoCount = ServerAcquireCartridge(ammoDamage, cartTypeName);
-		UpdateAnimation();
-		return changeAmmoCount;
-	}
 	
-	//! Used for when we empty a magzine manually
-	bool ServerStoreCartridgeEx(float ammoDamage, string cartTypeName)
-	{	bool changeAmmoCount = ServerStoreCartridge(ammoDamage, cartTypeName);
-		UpdateAnimation();
-		return changeAmmoCount;
-	}
-	
-
 	override bool CanBeSplit()
 	{
 		if ( m_CanThisBeSplit )

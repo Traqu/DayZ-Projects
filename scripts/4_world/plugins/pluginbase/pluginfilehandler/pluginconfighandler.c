@@ -4,9 +4,14 @@ class PluginConfigHandler extends PluginFileHandler
 	
 	void PluginConfigHandler()
 	{
-		m_CfgParams = new array<ref CfgParam>();
+		m_CfgParams = new array<ref CfgParam>;
 		
 		LoadConfigFile();
+	}
+
+	override void OnInit()
+	{
+		super.OnInit();
 	}
 	
 	override string GetFileName()

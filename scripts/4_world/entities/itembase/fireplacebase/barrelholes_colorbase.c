@@ -539,6 +539,11 @@ class BarrelHoles_ColorBase extends FireplaceBase
 		return "barrel_close_SoundSet";
 	}
 	
+	override string GetDeploySoundset()
+	{
+		return "placeBarrel_SoundSet";
+	}
+	
 	override void InitItemSounds()
 	{
 		super.InitItemSounds();

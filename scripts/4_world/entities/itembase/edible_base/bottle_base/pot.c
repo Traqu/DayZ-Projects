@@ -139,5 +139,3 @@ class Pot : Bottle_Base
 		AddAction(ActionEmptyCookingPot);
 	}
 }
-
-class CeramicPot_ColorBase : Pot{};

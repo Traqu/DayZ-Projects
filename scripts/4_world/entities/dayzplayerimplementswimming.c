@@ -45,10 +45,7 @@ class DayZPlayerImplementSwimming
 		if (pCurrentCommandID != DayZPlayerConstants.COMMANDID_SWIM)
 		{
 			vector wl;
-			bool swimmingStart = CheckSwimmingStart(wl);
-			m_pPlayer.SetCurrentWaterLevel(wl[1]);
-
-			if (swimmingStart)
+			if (CheckSwimmingStart(wl))
 			{
 				m_pPlayer.StartCommand_Swim();
 				m_bWasSwimming = true;
@@ -59,7 +56,8 @@ class DayZPlayerImplementSwimming
 			if ((pCurrentCommandID == DayZPlayerConstants.COMMANDID_MOVE) && (pCMove != null))
 			{
 				pCMove.SetCurrentWaterLevel(wl[1]);
-
+				m_pPlayer.SetCurrentWaterLevel(wl[1]);
+				
 				if (wl[1] > m_pSettings.m_fToErectLevel && pState.m_iStanceIdx != DayZPlayerConstants.STANCEIDX_ERECT && pState.m_iStanceIdx != DayZPlayerConstants.STANCEIDX_RAISEDERECT )
 				{
 					if ( DayZPlayerUtils.PlayerCanChangeStance(m_pPlayer, DayZPlayerConstants.STANCEIDX_ERECT) )

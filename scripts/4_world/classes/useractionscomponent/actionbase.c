@@ -18,6 +18,13 @@ class ActionReciveData
 	ref ActionTarget					m_Target;
 }
 
+class ActionOverrideData : Managed
+{
+	int m_CommandUID = -1;
+	int m_CommandUIDProne = -1;
+	int m_StanceMask = -1;
+}
+
 class ActionData
 {
 	void ActionData()
@@ -67,7 +74,6 @@ class ActionBase : ActionBase_Basic
 	protected int					m_VariantID;
 	int 							m_ConditionMask;
 	protected ref ActionVariantManager	m_VariantManager;
-	protected ref ActionInfoDataBase 	m_InfoData;
 
 	//RUNTIME DATA
 	protected ref Param1<string> 	m_MessageParam; //used for passing messages from server to client
@@ -94,9 +100,6 @@ class ActionBase : ActionBase_Basic
 		m_Input = null;
 		m_ActionID = 0;
 		InitConditionMask();
-		
-		if (!GetGame().IsDedicatedServer())
-			InitInfoData();
 	}
 	
 	bool IsLockTargetOnUse()
@@ -156,18 +159,8 @@ class ActionBase : ActionBase_Basic
 			m_ConditionMask |= ActionConditionMask.ACM_IN_FREELOOK;
 	}
 	
-	void InitInfoData()
-	{
-	}
-	
 	bool SetupAction(PlayerBase player, ActionTarget target, ItemBase item, out ActionData action_data, Param extra_data = NULL )
 	{
-#ifdef ENABLE_LOGGING
-		if ( LogManager.IsActionLogEnable() )
-		{
-			Debug.ActionLog("STS = " + player.GetSimulationTimeStamp(), this.ToString() , "n/a", "SetupAction", player.ToString() );
-		}
-#endif
 		action_data = CreateActionData();
 		action_data.m_Action = this;
 		action_data.m_Player = player;
@@ -197,7 +190,6 @@ class ActionBase : ActionBase_Basic
 		if ( !Post_SetupAction( action_data ) )
 			return false;
 		
-		// Execute on client/offline client only and check if action is not instand
 		if ( !g_Game.IsDedicatedServer() && !IsInstant() )
 		{
 			if (!InventoryReservation(action_data))
@@ -205,7 +197,7 @@ class ActionBase : ActionBase_Basic
 				ClearInventoryReservationEx(action_data);
 				return false;
 			}
-#ifdef ENABLE_LOGGING			
+			
 			if ( LogManager.IsActionLogEnable() )
 			{
 				for ( int i = 0; i < action_data.m_ReservedInventoryLocations.Count(); i++)
@@ -213,7 +205,6 @@ class ActionBase : ActionBase_Basic
 					Debug.ActionLog( InventoryLocation.DumpToStringNullSafe( action_data.m_ReservedInventoryLocations[i] ), action_data.m_Action.ToString() , "n/a", "LockInventoryList", action_data.m_Player.ToString() );
 				}
 			}
-#endif
 		}
 		
 		return true;
@@ -271,23 +262,6 @@ class ActionBase : ActionBase_Basic
 	bool IsLocal()
 	{
 		return false;
-	}
-	
-	//! Should we display additional info panel on ActionTargetsCursor
-	bool IsTargetInfoAction()
-	{
-		return m_InfoData != null;
-	}
-	
-	ActionInfoDataBase GetClientActionInfo()
-	{
-		return m_InfoData;
-	}
-	
-	//! If for some reason we want a non-performable action (like pure info ones)
-	bool CanBeStarted()
-	{
-		return true;
 	}
 	
 	//Action not using animation/callback action are executed instantly (OnStart)
@@ -463,12 +437,6 @@ class ActionBase : ActionBase_Basic
 
 	void WriteToContext(ParamsWriteContext ctx, ActionData action_data)
 	{
-#ifdef ENABLE_LOGGING
-		if ( LogManager.IsActionLogEnable() )
-		{
-			Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "WriteToContext", action_data.m_Player.ToString() );
-		}
-#endif
 		int componentIndex = -1;
 		int proxyBoneIdx = -1;
 		vector cursorHitPos = vector.Zero;
@@ -602,12 +570,6 @@ class ActionBase : ActionBase_Basic
 	
 	void HandleReciveData(ActionReciveData action_recive_data, ActionData action_data)
 	{
-#ifdef ENABLE_LOGGING
-		if ( LogManager.IsActionLogEnable() )
-		{
-			Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "HandleReciveData", action_data.m_Player.ToString() );
-		}
-#endif
 		action_data.m_MainItem = action_recive_data.m_MainItem;
 		
 		if(HasTarget())
@@ -775,12 +737,12 @@ class ActionBase : ActionBase_Basic
 	void Start( ActionData action_data ) //Setup on start of action
 	{
 		action_data.m_State = UA_START;
-#ifdef ENABLE_LOGGING
+		
 		if ( LogManager.IsActionLogEnable() )
 		{
-			Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "OnStart", action_data.m_Player.ToString() );
+			Debug.ActionLog("Time stamp: " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "OnStart", action_data.m_Player.ToString() );
 		}
-#endif
+		
 		OnStart(action_data);
 		
 		if ( g_Game.IsServer() )
@@ -820,12 +782,6 @@ class ActionBase : ActionBase_Basic
 	
 	void Interrupt(ActionData action_data)
 	{
-#ifdef ENABLE_LOGGING
-		if ( LogManager.IsActionLogEnable() )
-		{
-			Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "Interrupt", action_data.m_Player.ToString() );
-		}
-#endif
 		End(action_data);
 	}
 	
@@ -834,12 +790,6 @@ class ActionBase : ActionBase_Basic
 	
 	void EndInput(ActionData action_data)
 	{
-#ifdef ENABLE_LOGGING
-		if ( LogManager.IsActionLogEnable() )
-		{
-			Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "EndInput", action_data.m_Player.ToString() );
-		}
-#endif
 		action_data.m_ReciveEndInput = true;
 		OnEndInput(action_data);
 	}
@@ -849,12 +799,6 @@ class ActionBase : ActionBase_Basic
 	
 	void EndRequest(ActionData action_data)
 	{
-#ifdef ENABLE_LOGGING
-		if ( LogManager.IsActionLogEnable() )
-		{
-			Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "EndRequest", action_data.m_Player.ToString() );
-		}
-#endif
 		OnEndRequest(action_data);
 	}
 	
@@ -975,27 +919,9 @@ class ActionBase : ActionBase_Basic
 	protected bool CanContinue( ActionData action_data )
 	{
 		if (!action_data.m_Player.IsPlayerInStance(action_data.m_PossibleStanceMask) || !m_ConditionItem || !m_ConditionItem.CanContinue(action_data.m_Player,action_data.m_MainItem) || !m_ConditionTarget || !m_ConditionTarget.CanContinue(action_data.m_Player,action_data.m_Target))
-		{
-#ifdef ENABLE_LOGGING
-			if ( LogManager.IsActionLogEnable() )
-			{
-				Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp() + " Failded", this.ToString() , "n/a", "CanContinue", action_data.m_Player.ToString() );
-			}
-#endif
 			return false;
-		}
 
-		if (ActionConditionContinue(action_data))
-		{
-			return true;
-		}
-#ifdef ENABLE_LOGGING	
-		if ( LogManager.IsActionLogEnable() )
-		{
-			Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp() + " Failded condition", this.ToString() , "n/a", "CanContinue", action_data.m_Player.ToString() );
-		}
-#endif
-		return false;
+		return ActionConditionContinue(action_data);
 	}
 	
 	bool HasVariants()
@@ -1052,12 +978,6 @@ class ActionBase : ActionBase_Basic
 	// return if has successfuly reserved inventory
 	bool InventoryReservation(ActionData action_data)
 	{
-#ifdef ENABLE_LOGGING
-		if ( LogManager.IsActionLogEnable() )
-		{
-			Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "InventoryReservation", action_data.m_Player.ToString() );
-		}
-#endif
 		if (g_Game.IsDedicatedServer())
 			return true;
 
@@ -1121,12 +1041,6 @@ class ActionBase : ActionBase_Basic
 	{
 		if (action_data.m_Player.GetInstanceType() != DayZPlayerInstanceType.INSTANCETYPE_SERVER)
 		{
-#ifdef ENABLE_LOGGING
-			if ( LogManager.IsActionLogEnable() )
-			{
-				Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "ClearInventoryReservationEx", action_data.m_Player.ToString() );
-			}
-#endif
 			if (action_data.m_ReservedInventoryLocations)
 			{
 				InventoryLocation il;
@@ -1145,12 +1059,6 @@ class ActionBase : ActionBase_Basic
 	{
 		if (action_data.m_Player.GetInstanceType() != DayZPlayerInstanceType.INSTANCETYPE_SERVER)
 		{
-#ifdef ENABLE_LOGGING
-			if ( LogManager.IsActionLogEnable() )
-			{
-				Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "RefreshReservations", action_data.m_Player.ToString() );
-			}
-#endif
 			if (action_data.m_ReservedInventoryLocations)
 			{
 				InventoryLocation il;
@@ -1169,25 +1077,14 @@ class ActionBase : ActionBase_Basic
 		bool accepted = true;
 		if (action_data.m_Player.GetInstanceType() == DayZPlayerInstanceType.INSTANCETYPE_SERVER)
 		{
-#ifdef ENABLE_LOGGING
-			if ( LogManager.IsActionLogEnable() )
-			{
-				Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "AddActionJuncture", action_data.m_Player.ToString() );
-			}
-#endif
 			if (HasTarget() && IsLockTargetOnUse() && action_data.m_Target)
 			{
-				EntityAI targetEntity = EntityAI.Cast(action_data.m_Target.GetObject());
-				if (targetEntity && !targetEntity.IsSetForDeletion())
+				EntityAI targetEntity;
+				if (EntityAI.CastTo(targetEntity, action_data.m_Target.GetObject()))
 				{
-					if(!targetEntity.GetInventory())
-					{
-						ErrorEx("Error: Target does not have inventory");
-						return accepted;
-					}
 					InventoryLocation targetIl = new InventoryLocation();
 					targetEntity.GetInventory().GetCurrentInventoryLocation(targetIl);
-							
+					
 					//Lock target
 					if (!g_Game.AddInventoryJunctureEx(action_data.m_Player, targetEntity, targetIl, true, 10000, action_data))
 					{
@@ -1208,12 +1105,6 @@ class ActionBase : ActionBase_Basic
 	{
 		if (action_data.m_Player.GetInstanceType() == DayZPlayerInstanceType.INSTANCETYPE_SERVER)
 		{
-#ifdef ENABLE_LOGGING
-			if ( LogManager.IsActionLogEnable() )
-			{
-				Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "ClearActionJuncture", action_data.m_Player.ToString() );
-			}
-#endif
 			if (action_data.m_ReservedInventoryLocations)
 			{
 				InventoryLocation il;
@@ -1294,27 +1185,31 @@ class ActionBase : ActionBase_Basic
 			return false;
 			
 		float distanceRoot, distanceHead;
-		vector modelPos, worldPos;
-
+		vector modelPos, worldPos, playerHeadPos;
+		
 		// we're using sq distance in comparison
 		maxDistance = maxDistance * maxDistance;
-		vector playerPosition = player.GetPosition();
-		vector playerHeadPos = MiscGameplayFunctions.GetPlayerHeadPosition(player);
+		
+		// get position of Head bone
+		MiscGameplayFunctions.GetHeadBonePos(player, playerHeadPos);
 
 		array<string> componentNames = new array<string>();
 		obj.GetActionComponentNameList(target.GetComponentIndex(), componentNames);
-		bool inReach = false;
-		foreach (string componentName : componentNames)//we need to check it all, unfortunately
+		foreach (string componentName : componentNames)
 		{
+			if (componentName.Contains("doorstwin"))
+				continue;
+
 			modelPos = obj.GetSelectionPositionMS(componentName);
 			worldPos = obj.ModelToWorld(modelPos);
-			distanceRoot = vector.DistanceSq(worldPos, playerPosition);
-			distanceHead = vector.DistanceSq(worldPos, playerHeadPos);
 			
-			inReach |= distanceRoot <= maxDistance || distanceHead <= maxDistance; //at least one of the components must be close enough
+			break;
 		}
-		
-		return inReach;
+
+		distanceRoot = vector.DistanceSq(worldPos, player.GetPosition());
+		distanceHead = vector.DistanceSq(worldPos, playerHeadPos);
+	
+		return distanceRoot <= maxDistance || distanceHead <= maxDistance;
 	}
 	// ------------------------------------------------------
 	
@@ -1375,12 +1270,6 @@ class ActionBase : ActionBase_Basic
 	
 	void OnStart(ActionData action_data)
 	{
-#ifdef ENABLE_LOGGING
-		if ( LogManager.IsActionLogEnable() )
-		{
-			Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "OnStart", action_data.m_Player.ToString() );
-		}
-#endif
 		if (action_data.m_Player != NULL && action_data.m_Player.IsPlacingLocal() && !IsDeploymentAction())
 			action_data.m_Player.PlacingCancelLocal();
 	}
@@ -1395,12 +1284,7 @@ class ActionBase : ActionBase_Basic
 	
 	void OnEnd(ActionData action_data)
 	{
-#ifdef ENABLE_LOGGING
-		if ( LogManager.IsActionLogEnable() )
-		{
-			Debug.ActionLog("STS = " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "OnEnd", action_data.m_Player.ToString() );
-		}
-#endif
+
 	}
 	
 	void OnEndClient(ActionData action_data)

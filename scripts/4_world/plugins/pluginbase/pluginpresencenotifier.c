@@ -152,11 +152,7 @@ class PluginPresenceNotifier : PluginBase
 			
 			DbgUI.Panel("-- Noise reductions", mainPanelSizeX, 2);
 			DbgUI.Text("Noise reductions: ");
-			NoiseSystem noiseSys = g_Game.GetNoiseSystem();
-			float weatherReduction = 0;
-			if (noiseSys)
-				weatherReduction = noiseSys.GetEnvironmentNoiseReduction(m_pPlayer.GetPosition());
-			DbgUI.Text("Weather reduction: " + weatherReduction);
+			DbgUI.Text("Weather: " + NoiseAIEvaluate.GetNoiseReduction(m_Weather));
 			DbgUI.Spacer(10);
 
 			DbgUI.Panel("-- Result", mainPanelSizeX, 2);
@@ -226,8 +222,7 @@ class PluginPresenceNotifier : PluginBase
 		float reduction = 0;
 		if (m_pPlayer)
 		{
-			// weather dampening is applied engine-side now, so this HUD shows only the player noise multiplier
-			noise = NoiseAIEvaluate.GetNoiseMultiplier(m_pPlayer);
+			noise = NoiseAIEvaluate.GetNoiseMultiplier(m_pPlayer) * NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather());
 			noise = Math.Round(noise * NOISE_LEVEL_MAX);
 		}
 		

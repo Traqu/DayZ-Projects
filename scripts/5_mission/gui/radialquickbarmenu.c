@@ -656,7 +656,7 @@ class RadialQuickbarMenu extends UIScriptedMenu
 	{
 		if ( instance.m_SelectedItem )
 		{
-			if ( !g_Game.IsHeadlessOrDedicatedServer() )
+			if ( !g_Game.IsDedicatedServer() )
 			{
 				RadialQuickbarItem quickbar_item;
 				instance.m_SelectedItem.GetUserData( quickbar_item );
@@ -716,7 +716,7 @@ class RadialQuickbarMenu extends UIScriptedMenu
 	{
 		if ( instance.m_SelectedItem && m_CurrentCategory == RadialQuickbarCategory.DEFAULT )
 		{
-			if ( !g_Game.IsHeadlessOrDedicatedServer() )
+			if ( !g_Game.IsDedicatedServer() )
 			{
 				RadialQuickbarItem quickbar_item;
 				instance.m_SelectedItem.GetUserData( quickbar_item );

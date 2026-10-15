@@ -178,11 +178,17 @@ class Object extends IEntity
 			ammoType = "Dummy_Heavy";
 		
 		vector pos = GetPosition();
+		
+		// Handle spawn of particle if one is configured in config
+		AmmoEffects.PlayAmmoParticle(ammoType, pos);			
+		
+		// Handle spawn of Effect if one is configured in config
+		AmmoEffects.PlayAmmoEffect(ammoType, pos);
 	}
 	
 	void OnExplosionEffects(Object source, Object directHit, int componentIndex, string surface, vector pos, vector surfNormal, float energyFactor, float explosionFactor, bool isWater, string ammoType) { }
 	
-	//! returns FIRST FOUND action component name by given component index, 'geometry' can be "fire" or "view" (default "" for mixed/legacy mode)
+	//! returns action component name by given component index, 'geometry' can be "fire" or "view" (default "" for mixed/legacy mode)
 	proto native owned string GetActionComponentName(int componentIndex, string geometry = "");
 	
 	//! returns action component position by given component index, 'geometry' can be "fire" or "view" (default "" for mixed/legacy mode)
@@ -649,11 +655,6 @@ class Object extends IEntity
 		return EWaterSourceObjectType.NONE;
 	}
 	
-	ELiquidSourceObjectType GetLiquidSourceObjectType()
-	{
-		return ELiquidSourceObjectType.NONE;
-	}
-	
 	int GetLiquidSourceType()
 	{
 		return LIQUID_NONE;
@@ -663,7 +664,7 @@ class Object extends IEntity
 	//! DEPRECATED by GetWaterSourceObjectType
 	bool IsWell()
 	{
-		return GetWaterSourceObjectType() == EWaterSourceObjectType.WELL;
+		return false;
 	}
 	//! Returns if this entity is a weapon which can shoot explosive ammo
 	bool ShootsExplosiveAmmo()//placed on Object so that we can optimize early checks in DayZGame without casting
@@ -671,11 +672,6 @@ class Object extends IEntity
 		return false;
 	}
 	
-	bool IsExplosive()
-	{
-		return false;
-	}
-
 	//! Returns if this entity is Fuel Station (extends Building)
 	bool IsFuelStation()
 	{
@@ -700,7 +696,7 @@ class Object extends IEntity
 		return false;
 	}
 	
-	//! Returns true if the build action can be used on this
+	//! Returns if this entity can be built, specifically.
 	bool CanUseConstructionBuild()
 	{
 		return false;
@@ -1371,14 +1367,6 @@ class Object extends IEntity
 			return GetPosition() + Vector(0, 0.2, 0);
 		}
 	}
-	
-	bool IsInfluencedBySandstorm()
-	{
-		return false;
-	}
-	
-	void OnClientSandstormEnter();
-	void OnClientSandstormLeave();
 	
 	#ifdef DEVELOPER
 	void SetDebugItem();

@@ -30,10 +30,8 @@ class ActionGetOutTransport : ActionBase
 	const int LOW_SPEED_VALUE 			= 20;
 	const int HIGH_SPEED_VALUE			= 30;
 	
-	// TODO@RR - rework - store data on Vehicle type instead; consider use of Speed instead of Speedometer
 	protected const float CAR_JUMPOUT_THRESHOLD 	= 8.0;	// speed in km/h at which leaving the vehicle is considered a jump out
 	protected const float BOAT_JUMPOUT_THRESHOLD 	= 5.0;
-	protected const float MOTO_JUMPOUT_THRESHOLD	= 10.0;
 	
 	const int HEALTH_LOW_SPEED_VALUE 	= 30;
 	const int HEALTH_HIGH_SPEED_VALUE 	= 70;
@@ -70,13 +68,13 @@ class ActionGetOutTransport : ActionBase
 	override bool ActionCondition(PlayerBase player, ActionTarget target, ItemBase item)
 	{
 		HumanCommandVehicle vehCommand = player.GetCommand_Vehicle();
-		if (vehCommand && !vehCommand.IsTransitioning())
+		if (vehCommand)
 		{
 			Transport trans = vehCommand.GetTransport();
 			if (trans)
 			{
 				int crewIndex = trans.CrewMemberIndex(player);
-				return crewIndex >= 0 && trans.CrewCanGetThrough(crewIndex) && trans.IsAreaAtDoorFreeDiag(crewIndex);
+				return crewIndex >= 0 && trans.CrewCanGetThrough(crewIndex) && trans.IsAreaAtDoorFree(crewIndex);
 			}
 		}
 
@@ -137,7 +135,6 @@ class ActionGetOutTransport : ActionBase
 
 	void ProcessGetOutTransportActionData(Transport veh, GetOutTransportActionData got_action_data)
 	{
-		
 		float speed;
 		if (Car.Cast(veh))
 		{
@@ -151,11 +148,6 @@ class ActionGetOutTransport : ActionBase
 			vector velocity = dBodyGetVelocityAt(veh, playerPosition);
 			velocity[1] = 0; // sliding check doesn't use vertical velocity
 			speed = velocity.Normalize();
-		}
-		else if (Motorbike.Cast(veh))
-		{
-			got_action_data.m_JumpingOutThreshold = MOTO_JUMPOUT_THRESHOLD;
-			speed = Motorbike.Cast(veh).GetSpeedometerAbsolute();
 		}
 
 		got_action_data.m_Speed = speed;
@@ -196,6 +188,16 @@ class ActionGetOutTransport : ActionBase
 	override void OnStartServer(ActionData action_data)
 	{
 		super.OnStartServer(action_data);
+		
+		HumanCommandVehicle vehCommand = action_data.m_Player.GetCommand_Vehicle();
+		if (vehCommand)
+		{
+			CarScript car;
+			if (Class.CastTo(car, vehCommand.GetTransport()))
+			{
+				car.ForceUpdateLightsStart();
+			}
+		}
 	}
 
 	override void OnUpdate(ActionData action_data)
@@ -246,6 +248,10 @@ class ActionGetOutTransport : ActionBase
 			
 			ApplyJumpOutDmg(action_data);
 		}
+
+		CarScript car = CarScript.Cast(gotActionData.m_Vehicle);
+		if (car)
+			car.ForceUpdateLightsEnd();
 	}
 	
 	//Manage all jumping out of vehicle damage logic

@@ -1,4 +1,3 @@
-#ifdef ROBOCLIENT
 class BotEventEntityAttached : BotEventBase { };
 
 class BotEventEntityDetached : BotEventBase { };
@@ -110,7 +109,7 @@ class BotTestAttachAndDropCycle_Attaching extends BotStateBase
 			
 			if (m_Owner.GetInventory().CanAddAttachment(m_Entity))
 			{
-				m_Owner.PredictiveTakeEntityToTargetAttachment(m_Owner, m_Entity);
+				m_Owner.PredictiveTakeEntityAsAttachment(m_Entity);
 	
 				InventoryLocation loc = new InventoryLocation;
 				if (m_Entity.GetInventory().GetCurrentInventoryLocation(loc))
@@ -124,4 +123,4 @@ class BotTestAttachAndDropCycle_Attaching extends BotStateBase
 		}
 	}
 };
-#endif
+

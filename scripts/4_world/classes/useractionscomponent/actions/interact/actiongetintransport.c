@@ -25,44 +25,55 @@ class ActionGetInTransport: ActionBase
 
 	override bool ActionCondition(PlayerBase player, ActionTarget target, ItemBase item)
 	{
+		Transport trans	= null;
 
 		if (!target)
+		{
 			return false;
+		}
 
-		Transport transport	= null;
-		if (!Class.CastTo(transport, target.GetObject()))
+		if (!Class.CastTo(trans, target.GetObject()))
+		{
 			return false;
-		
-		if (!transport.CanGetIn())
-			return false;
+		}
 		
 		if (player.GetItemInHands() && player.GetItemInHands().IsHeavyBehaviour())
+		{
 			return false;
+		}
 
 		if (player.GetCommand_Vehicle())
+		{
 			return false;
+		}
 
 		int componentIndex	= target.GetComponentIndex();
-		int crewIndex 		= transport.CrewPositionIndex(componentIndex);
-		if (crewIndex < 0)
+		int crew_index 		= trans.CrewPositionIndex(componentIndex);
+		if (crew_index < 0)
+		{
 			return false;
+		}
 
-		Human crew = transport.CrewMember(crewIndex);
+		Human crew = trans.CrewMember(crew_index);
 		if (crew)
+		{
 			return false;
+		}
 		
-		if (!transport.CrewCanGetThrough(crewIndex) || !transport.IsAreaAtDoorFreeDiag(crewIndex))
+		if (!trans.CrewCanGetThrough(crew_index) || !trans.IsAreaAtDoorFree(crew_index))
+		{
 			return false;
+		}
 		
 		array<string> selections = new array<string>();
-		transport.GetActionComponentNameList(componentIndex, selections);
-		int selectionCount = selections.Count();
-		vector playerPosition = player.GetPosition();
+		trans.GetActionComponentNameList(componentIndex, selections);
 		
-		for (int i = 0; i < selectionCount; ++i)
+		for (int i = 0; i < selections.Count(); i++)
 		{
-			if (transport.CanReachSeatFromDoors(selections[i], playerPosition, 1.0))
+			if (trans.CanReachSeatFromDoors(selections[i], player.GetPosition(), 1.0))
+			{
 				return true;
+			}
 		}
 
 		return false;
@@ -70,43 +81,30 @@ class ActionGetInTransport: ActionBase
 
 	override void Start(ActionData action_data)
 	{
-		super.Start(action_data);
-
-		Transport transport = Transport.Cast(action_data.m_Target.GetObject());
-		int componentIndex = action_data.m_Target.GetComponentIndex();
-		int crewIndex = transport.CrewPositionIndex(componentIndex);
-
-		float direction = 0;
-		int seat;
-		if (transport.HasDirectionalInOutAction())
-		{
-			vector fwd = transport.GetDirection();
-			fwd[1] = 0;
-			fwd.Normalize();
-	
-			vector playerPosition = action_data.m_Player.GetPosition();
-			vector toTarget = transport.GetPosition() - playerPosition;
-			toTarget[1] = 0;
-			toTarget.Normalize();
-	
-			vector right = Vector(fwd[2], 0.0, -fwd[0]);
-	
-			float side = vector.Dot(toTarget, right);
-	
-			if (side < 0.0)
-			    direction = 1;
+		super.Start( action_data );
 		
-			seat = transport.GetSeatAnimationTypeDirectional(crewIndex, direction);
-		}
-		else
-			seat = transport.GetSeatAnimationType(crewIndex);
-
-		HumanCommandVehicle vehCommand = action_data.m_Player.StartCommand_Vehicle(transport, crewIndex, seat);
+		Transport trans = Transport.Cast(action_data.m_Target.GetObject());
+		int componentIndex = action_data.m_Target.GetComponentIndex();
+		int crew_index = trans.CrewPositionIndex(componentIndex);
+		
+		int seat = trans.GetSeatAnimationType(crew_index);
+		HumanCommandVehicle vehCommand = action_data.m_Player.StartCommand_Vehicle(trans, crew_index, seat);
 		if (vehCommand)
 		{
-			vehCommand.SetVehicleType(transport.GetAnimInstance());
-
+			vehCommand.SetVehicleType(trans.GetAnimInstance());
+			
 			GetDayZGame().GetBacklit().OnEnterCar();
+		}
+	}
+	
+	override void OnStartServer(ActionData action_data)
+	{
+		super.OnStartServer(action_data);
+		
+		CarScript car = CarScript.Cast(action_data.m_Target.GetObject());
+		if (car)
+		{
+			car.ForceUpdateLightsStart();
 		}
 	}
 
@@ -133,6 +131,11 @@ class ActionGetInTransport: ActionBase
 	
 	override void OnEnd(ActionData action_data)
 	{
+		CarScript car = CarScript.Cast(action_data.m_Target.GetObject());
+		if (car && g_Game.IsServer())
+		{
+			car.ForceUpdateLightsEnd();
+		}
 	}
 	
 	override bool AddActionJuncture(ActionData action_data)

@@ -558,8 +558,7 @@ class DayZPlayerImplementMeleeCombat
 		{ // What the player himself is looking at
 			playerDir = MiscGameplayFunctions.GetHeadingVector(player);
 			dir = g_Game.GetCurrentCameraDirection();
-			// get position of Head bone
-			pos = MiscGameplayFunctions.GetPlayerHeadPosition(player);
+			MiscGameplayFunctions.GetHeadBonePos(player, pos);
 		}
 		
 		//! Prevents targeting of objects behind player
@@ -600,7 +599,6 @@ class DayZPlayerImplementMeleeCombat
 	}
 
 	//! DEPRECATED
-	[Obsolete("replaced by HitZoneSelectionRaycast")]
 	protected void HitZoneSelection()
 	{
 		Object cursorTarget = null;
@@ -667,7 +665,6 @@ class DayZPlayerImplementMeleeCombat
 	}
 
 	//! DEPRECATED - New function in MeleeTargeting
-	[Obsolete("replaced by MeleeTargeting.IsMeleeTargetObstructed")]
 	protected bool IsObstructed(Object object)
 	{
 		// check direct visibility of object (obstruction check)

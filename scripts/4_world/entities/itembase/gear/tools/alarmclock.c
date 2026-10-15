@@ -27,9 +27,7 @@ class AlarmClock_ColorBase: ClockBase
 	void ~AlarmClock_ColorBase()
 	{
 		#ifndef SERVER
-		#ifndef NO_GUI
 		OnRingingStopClient();
-		#endif
 		#endif
 	}
 	
@@ -139,7 +137,7 @@ class AlarmClock_ColorBase: ClockBase
 			}
 			else if ( m_NoiseSystem )
 			{
-				m_NoiseSystem.AddNoiseTarget( GetPosition(), UPDATE_TICK_RATE, m_NoisePar);
+				m_NoiseSystem.AddNoiseTarget( GetPosition(), UPDATE_TICK_RATE, m_NoisePar, NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather()));
 			}
 		}
 	}

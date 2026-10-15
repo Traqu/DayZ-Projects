@@ -16,10 +16,8 @@ class ScriptConsoleEnfScriptTab : ScriptConsoleTabBase
 	
 	static ref TStringArray 					m_ScriptOutputHistory = new TStringArray();
 	
-	override void InitializeTab(Widget root, ScriptConsole console, Widget button, ScriptConsoleTabBase parent = null)
+	void ScriptConsoleEnfScriptTab(Widget root, ScriptConsole console, Widget button, ScriptConsoleTabBase parent = null)
 	{
-		super.InitializeTab(root, console, button, parent);
-		
 		m_Instance 							= this;
 		m_ModuleLocalEnscriptHistory 		= PluginLocalEnscriptHistory.Cast(GetPlugin(PluginLocalEnscriptHistory));
 		m_ModuleLocalEnscriptHistoryServer 	= PluginLocalEnscriptHistoryServer.Cast(GetPlugin(PluginLocalEnscriptHistoryServer));
@@ -266,8 +264,6 @@ class ScriptConsoleEnfScriptServerTab : ScriptConsoleEnfScriptTab
 {
 	override void OnSelected()
 	{
-		SetFocus(m_EnfScriptEdit);
-		
 		int index = m_EnscriptConsoleHistoryServer.Count() - m_EnscriptHistoryRowServer - 1;
 		if (m_EnscriptConsoleHistoryServer.IsValidIndex(index))
 		{
@@ -324,4 +320,5 @@ class ScriptConsoleEnfScriptServerTab : ScriptConsoleEnfScriptTab
 		
 		return false;
 	}
+	
 }

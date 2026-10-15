@@ -19,8 +19,7 @@ class AutoTestFixture
 			errorMessage = string.Format("Cannot open file \"%1\" for writing", filename);
 			return false;
 		}
-		
-		Print("Saving autotest result to: " + filename);
+
 		FPrint(handle, data);
 		CloseFile(handle);
 

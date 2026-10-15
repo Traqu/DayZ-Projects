@@ -40,7 +40,6 @@ class UnderObjectDecalSpawnComponent
 			return;
 
 		#ifndef SERVER
-		#ifndef NO_GUI
 		m_Decal = g_Game.CreateObjectEx(
 			GetObjectNameFromSurfaceConfig(),
 			m_Parent.GetPosition() + m_Settings.m_PositionOffset,
@@ -59,16 +58,13 @@ class UnderObjectDecalSpawnComponent
 			m_Decal.SetScale(m_Settings.m_ScaleMin);
 		}
 		#endif
-		#endif
 	}
 	
 	void RemoveDecal()
 	{
 		#ifndef SERVER
-		#ifndef NO_GUI
 		if (m_Decal)
 			m_Decal.Delete();
-		#endif
 		#endif
 	}
 	

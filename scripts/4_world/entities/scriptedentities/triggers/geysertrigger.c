@@ -1,5 +1,3 @@
-//#define GEYSER_LOGGING
-
 class GeyserTrigger : EffectTrigger
 {
 	const float 	MOUTH_ADJUST_RADIUS 		= 0.2; // maxium radius geyser effect can move when using randomized position adjustment
@@ -44,7 +42,7 @@ class GeyserTrigger : EffectTrigger
 		if (IsSubmerged())
 			RandomizeMouthPos();
 		
-		if (!g_Game.IsHeadlessOrDedicatedServer())
+		if (!g_Game.IsDedicatedServer())
 			UpdateGeyserState();	
 	}
 	
@@ -99,9 +97,7 @@ class GeyserTrigger : EffectTrigger
 	protected void UpdateGeyserState()
 	{
 	#ifdef ENABLE_LOGGING
-	#ifdef GEYSER_LOGGING
 		Debug.Log("UpdateGeyserState, state: " + m_GeyserState);
-	#endif
 	#endif
 		
 		if (CheckGeyserState(EGeyserState.DORMANT) && !m_bIsDormant)

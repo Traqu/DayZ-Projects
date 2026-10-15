@@ -67,6 +67,7 @@ class ActionUnmountBarbedWire: ActionMountBarbedWire
 				selection.Insert(selection.Length(),"_barbedwire_1");
 			}*/
 		}
+		//Print(selection);
 		return selection;
 	}
 	

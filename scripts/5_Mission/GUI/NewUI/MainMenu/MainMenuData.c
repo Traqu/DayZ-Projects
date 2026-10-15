@@ -3,25 +3,6 @@ class MainMenuData
 	protected static ref JsonDataNewsList m_NewsData;
 	protected static ref array<ref ModInfo> m_AllMods;
 	protected static ref map<string, ref ModInfo> m_AllDlcsMap;
-	protected static ref ScriptInvoker m_OnDLCChangeSI;
-	
-	static void SubscribeDLCUpdate()
-	{
-		ContentDLC contentDLC = g_Game.GetContentDLCService();
-		if (contentDLC)
-		{
-			contentDLC.Subscribe(OnDLCChange);
-		}
-	}
-	
-	static void UnsubscribeDLCUpdate()
-	{
-		ContentDLC contentDLC = g_Game.GetContentDLCService();
-		if (contentDLC)
-		{
-			contentDLC.Unsubscribe(OnDLCChange);
-		}
-	}
 	
 	static JsonDataNewsList GetNewsData()
 	{
@@ -50,17 +31,15 @@ class MainMenuData
 		if (!m_NewsData)
 			GetNewsData();
 		
-		if (!m_AllMods)
-			m_AllMods = new array<ref ModInfo>();
-		else
-			m_AllMods.Clear();
+		if (m_AllMods != null)
+			return;
+		
+		m_AllMods = new array<ref ModInfo>;
 
 		g_Game.GetModInfos(m_AllMods);
-		
-		int modsCount = m_AllMods.Count();
-		if (modsCount > 0)
+		if (m_AllMods.Count() > 0)
 		{
-			m_AllMods.Remove(modsCount - 1);
+			m_AllMods.Remove(m_AllMods.Count() - 1);
 			m_AllMods.Invert();
 		}
 		
@@ -100,13 +79,9 @@ class MainMenuData
 		}
 		
 		if (!m_NewsData)
-		{
+		{		
 			ErrorEx("Failed to get news data!", ErrorExSeverity.WARNING);
 			return;
-		}
-		else
-		{
-			m_NewsData.News.Clear();
 		}
 		
 		for (int i = 0; i < m_AllDlcsMap.Count(); i++)
@@ -116,8 +91,8 @@ class MainMenuData
 			{
 				continue;
 			}
+			JsonDataNewsArticle dlcArticle = new JsonDataNewsArticle;
 			
-			JsonDataNewsArticle dlcArticle = new JsonDataNewsArticle();
 			dlcArticle.categoryID = NewsCategory.DLCS;
 			dlcArticle.excerpt = info.GetOverview();
 			dlcArticle.title = info.GetName();
@@ -126,9 +101,22 @@ class MainMenuData
 			dlcName.ToLower();
 			dlcName.Replace("dayz ", "");
 			dlcArticle.dlcName = dlcName;
-			dlcArticle.coverImage = info.GetPicture();
+			dlcArticle.coverImage = ModInfo.GetDLCImage(dlcName);
 			m_NewsData.News.Insert(dlcArticle);
 		}
+		
+		//! Temporary DLC entry for Badlands for the carousel promo on PC only. REMOVE AFTER MOD INFO HAS BEEN ADDED	
+		JsonDataNewsArticle tempDLCArticle = new JsonDataNewsArticle;
+		tempDLCArticle.categoryID = NewsCategory.DLC_PROMO;
+		tempDLCArticle.title = "#dlc_news_badlands";
+		#ifdef PLATFORM_WINDOWS
+		tempDLCArticle.fullUrl = "https://store.steampowered.com/app/3816030";
+		#else
+		tempDLCArticle.fullUrl = "";
+		#endif
+		tempDLCArticle.dlcName = "badlands";
+		tempDLCArticle.coverImage = ModInfo.GetDLCImage(tempDLCArticle.dlcName);
+		m_NewsData.News.Insert(tempDLCArticle);
 	}
 	
 	static void ClearAllDLCs()
@@ -150,19 +138,5 @@ class MainMenuData
 	static array<ref ModInfo> GetAllMods()
 	{
 		return m_AllMods;
-	}
-	
-	static void OnDLCChange(EDLCId dlcId)
-	{
-		LoadMods();
-		GetOnDLCChangedSI().Invoke(dlcId);
-	}
-	
-	static ScriptInvoker GetOnDLCChangedSI()
-	{
-		if (!m_OnDLCChangeSI)
-			m_OnDLCChangeSI = new ScriptInvoker();
-		
-		return m_OnDLCChangeSI;
 	}
 }

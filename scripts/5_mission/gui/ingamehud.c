@@ -178,9 +178,6 @@ class IngameHud extends Hud
 		
 		BoatHud boatHud = new BoatHud();
 		m_VehicleHudMap.Insert("VehicleTypeBoat", boatHud);
-
-		MotorbikeHud motorbikeHud = new MotorbikeHud();
-		m_VehicleHudMap.Insert("VehicleTypeMotorbike", motorbikeHud);
 	
 		foreach (VehicleHudBase vehHud : m_VehicleHudMap)
 		{
@@ -250,7 +247,7 @@ class IngameHud extends Hud
 		m_StatesWidgetNames.Set( NTFKEY_THIRSTY, "Thirsty" );
 		m_StatesWidgetNames.Set( NTFKEY_HUNGRY, "Hungry" );
 		m_StatesWidgetNames.Set( NTFKEY_HEALTHY, "Health" );
-		m_StatesWidgetNames.Set( NTFKEY_BLOOD, "Blood" );
+		m_StatesWidgetNames.Set( NTFKEY_BLEEDISH, "Blood" );
 		m_StatesWidgetNames.Set( NTFKEY_FEVERISH, "Temperature" );
 	
 		m_Notifiers.Show( true );
@@ -920,7 +917,7 @@ class IngameHud extends Hud
 	//! global setting -> used to determine visibility based on platform
 	override void ShowQuickBar( bool show )
 	{
-		m_HudVisibility.SetContextFlag(EHudContextFlags.QUICKBAR_GLOBAL, !show, true);
+		m_HudVisibility.SetContextFlag(EHudContextFlags.QUICKBAR_GLOBAL, !show);
 	}
 	
 	// disable HUD through options menu

@@ -15,9 +15,7 @@ class VolcanicTrigger : EffectTrigger
 		super.EEInit();
 				
 		#ifndef SERVER
-		#ifndef NO_GUI
 		SpawnVaporEffect();
-		#endif
 		#endif
 	}
 	

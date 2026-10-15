@@ -1,4 +1,4 @@
-class Truck_01_Base : CarScript
+class Truck_01_Base extends CarScript
 {
 	protected ref UniversalTemperatureSource m_UTSource;
 	protected ref UniversalTemperatureSourceSettings m_UTSSettings;
@@ -19,17 +19,10 @@ class Truck_01_Base : CarScript
 		m_CarDoorOpenSound 		= "Truck_01_door_open_SoundSet";
 		m_CarDoorCloseSound 	= "Truck_01_door_close_SoundSet";
 		
-		m_LightsComponent.RegisterLight("Front", new VehicleLightData(new Truck_01LightProfileFront()));
-		m_LightsComponent.RegisterLight("Rear", new VehicleLightData(new Truck_01LightProfileRear()));
-		
-		m_HornComponent.RegisterSound(VehicleHornMode.SHORT, 	"Truck_01_Horn_Short_SoundSet");
-		m_HornComponent.RegisterSound(VehicleHornMode.LONG, 	"Truck_01_Horn_SoundSet");
-		
-		SetEnginePos("0 1.4 2.25");
-		
-		//! DEPRECATED
 		m_CarHornShortSoundName = "Truck_01_Horn_Short_SoundSet";
 		m_CarHornLongSoundName	= "Truck_01_Horn_SoundSet";
+		
+		SetEnginePos("0 1.4 2.25");
 	}
 	
 	void ~Truck_01_Base()
@@ -38,7 +31,7 @@ class Truck_01_Base : CarScript
 		m_UTSSettings = null;
 		m_UTSLEngine = null;
 	}
-	
+
 	override void EEInit()
 	{		
 		super.EEInit();
@@ -55,23 +48,6 @@ class Truck_01_Base : CarScript
 			m_UTSLEngine						= new UniversalTemperatureSourceLambdaEngine();
 			m_UTSource							= new UniversalTemperatureSource(this, m_UTSSettings, m_UTSLEngine);
 		}		
-	}
-	
-	override bool NeedElectricitySourceDevice()
-	{
-		return true;
-	}
-	
-	override EntityAI GetElectricitySourceDevice()
-	{
-		super.GetElectricitySourceDevice();
-		
-		return GetInventory().FindAttachment(TruckBattery.SLOT_ID);
-	}
-
-	override string GetElectricitySourceDeviceType()
-	{
-		return "TruckBattery";
 	}
 	
 	override void OnEngineStart()
@@ -117,11 +93,6 @@ class Truck_01_Base : CarScript
 		return "0 3.2 0";
 	}
 	
-	override float GetWeightCoef()
-	{
-		return 2.0;
-	}
-	
 	override int GetAnimInstance()
 	{
 		return VehicleAnimInstances.V3S;
@@ -138,6 +109,18 @@ class Truck_01_Base : CarScript
 		}
 
 		return 0;
+	}
+
+	// Override for car-specific light type
+	override CarLightBase CreateFrontLight()
+	{
+		return CarLightBase.Cast(ScriptedLightBase.CreateLight(Truck_01FrontLight));
+	}
+	
+	// Override for car-specific light type
+	override CarRearLightBase CreateRearLight()
+	{
+		return CarRearLightBase.Cast(ScriptedLightBase.CreateLight(Truck_01RearLight));
 	}
 	
 	override bool CanReleaseAttachment(EntityAI attachment)
@@ -251,7 +234,6 @@ class Truck_01_Base : CarScript
 		super.OnAnimationPhaseStarted(animSource, phase);
 
 		#ifndef SERVER
-		#ifndef NO_GUI
 		switch (animSource)
 		{
 		case "wheelsideplate1":
@@ -273,7 +255,6 @@ class Truck_01_Base : CarScript
 			sound.SoundPlay();
 		break;
 		}
-		#endif
 		#endif
 	}
 	
@@ -360,6 +341,12 @@ class Truck_01_Base : CarScript
 
 		return -1;
 	}
+	
+
+	override bool IsVitalCarBattery()
+	{
+		return false;
+	}
 
 	override bool IsVitalSparkPlug()
 	{
@@ -418,4 +405,4 @@ class Truck_01_Base : CarScript
 		inventory.CreateInInventory("Truck_01_WheelDouble");
 		inventory.CreateInInventory("Truck_01_WheelDouble");
 	}
-}
+};

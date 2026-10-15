@@ -4,11 +4,11 @@ class ActionFillFuelCB : ActionContinuousBaseCB
 
 	override void CreateActionComponent()
 	{
-		m_ActionData.m_ActionComponent = new CAContinuousFillFuel(UAQuantityConsumed.FUEL, TIME_TO_REPEAT);
+		m_ActionData.m_ActionComponent = new CAContinuousFillFuel( UAQuantityConsumed.FUEL, TIME_TO_REPEAT );
 	}
-}
+};
 
-class ActionFillFuel : ActionContinuousBase
+class ActionFillFuel: ActionContinuousBase
 {
 	const string FUEL_SELECTION_NAME = "refill";
 	
@@ -29,41 +29,54 @@ class ActionFillFuel : ActionContinuousBase
 		m_ConditionTarget = new CCTNone;
 	}
 
-	override bool ActionCondition(PlayerBase player, ActionTarget target, ItemBase item)
+	override bool ActionCondition( PlayerBase player, ActionTarget target, ItemBase item )
 	{
-		if (!target)
+		if ( !target || !IsTransport(target) )
+			return false;
+
+		if ( item.GetQuantity() <= 0 )
+			return false;
+
+		if ( item.GetLiquidType() != LIQUID_GASOLINE )
+			return false;
+
+		if (target.GetObject().IsDamageDestroyed())
 			return false;
 		
-		Transport transport = Transport.Cast(target.GetObject());
-		if (!transport)
-			return false;
-		
-		if (transport.IsDamageDestroyed())
-			return false;
-
-		if (item.GetQuantity() <= 0)
-			return false;
-
-		if (item.GetLiquidType() != LIQUID_GASOLINE)
-			return false;
-
-		if (transport.GetFluidFractionScript(ETransportFluid.FUEL) >= 0.98)
-			return false;
-
-		TStringArray selections = new TStringArray();
-		transport.GetActionComponentNameList(target.GetComponentIndex(), selections);
-		
-		foreach (string selection : selections)
+		Car car = Car.Cast(target.GetObject());
+		Boat boat = Boat.Cast(target.GetObject());
+		if (car)
 		{
-			if (selection == transport.GetActionCompNameFuel())
-			{
-				float dist = vector.DistanceSq(transport.GetRefillPointPosWS(), player.GetPosition());
+			if (car.GetFluidFraction( CarFluid.FUEL ) >= 0.98)
+				return false;
+		}
+		else if (boat)
+		{
+			if ( boat.GetFluidFraction( BoatFluid.FUEL ) >= 0.98 )
+				return false;
+		}
+		else 
+			return false;
 
-				if (dist < transport.GetActionDistanceFuel() * transport.GetActionDistanceFuel())
-					return true;
+		array<string> selections = new array<string>;
+		target.GetObject().GetActionComponentNameList(target.GetComponentIndex(), selections);
+
+		Transport vehicle = Transport.Cast(target.GetObject());
+		
+		if ( vehicle )
+		{
+			for (int s = 0; s < selections.Count(); s++)
+			{
+				if ( selections[s] == vehicle.GetActionCompNameFuel() )
+				{
+					float dist = vector.DistanceSq( vehicle.GetRefillPointPosWS(), player.GetPosition() );
+
+					if ( dist < vehicle.GetActionDistanceFuel() * vehicle.GetActionDistanceFuel() )
+						return true;
+				}
 			}
 		}
 
 		return false;
 	}
-}
+};

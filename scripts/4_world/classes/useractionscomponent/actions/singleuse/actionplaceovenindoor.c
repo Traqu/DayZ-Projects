@@ -115,6 +115,7 @@ class FireplaceToIndoorOvenLambda : TurnItemIntoItemLambda
 			vector fprot = vector.Zero;
 			fprot[0] = m_FireplaceRot;
 			fireplace_indoor.SetOrientation( fprot );
+			Print(fireplace_indoor.GetOrientation());
 
 			// smoke pos (chimney)
 			fireplace_indoor.SetSmokePointPosition( m_SmokePosition );

@@ -1,4 +1,3 @@
-[Obsolete("replaced by ActionVehicleHornBase")]
 class ActionCarHornBase
 {
 	static bool ActionCondition(PlayerBase player)
@@ -48,7 +47,6 @@ class ActionCarHornBase
 	}
 }
 
-//! obsolete
 class CarHornActionReceiveData : ActionReciveData
 {
 	bool 		m_ActionNeedEnd;
@@ -56,17 +54,14 @@ class CarHornActionReceiveData : ActionReciveData
 	
 }
 
-//! obsolete
 class CarHornActionData : ActionData
 {
 	bool 		m_ActionNeedEnd;
 	CarScript 	m_Car;
 }
 
-[Obsolete("replaced by ActionVehicleHornShortCB")]
 class ActionCarHornShortCB : ActionSingleUseBaseCB {}
 
-[Obsolete("replaced by ActionVehicleHornShort")]
 class ActionCarHornShort : ActionSingleUseBase
 {
 	void ActionCarHornShort()
@@ -210,7 +205,6 @@ class ActionCarHornShort : ActionSingleUseBase
 	}
 }
 
-[Obsolete("replaced by ActionVehicleHornLong")]
 class ActionCarHornLong : ActionContinuousBase
 {
 	void ActionCarHornLong()
@@ -286,7 +280,7 @@ class ActionCarHornLong : ActionContinuousBase
 		{
 			carHornData.m_State = UA_FINISHED;
 			callback.EndActionComponent();
-	}
+		}
 	}
 	
 	override void OnStart(ActionData action_data)

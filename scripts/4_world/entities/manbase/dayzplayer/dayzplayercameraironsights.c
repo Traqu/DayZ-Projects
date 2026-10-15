@@ -269,9 +269,7 @@ class DayZPlayerCameraIronsights extends DayZPlayerCameraBase
 			
 			if (IsCameraNV())
 			{
-				int resolvedType = ResolveNVType(GetCameraNVType(), PlayerBase.Cast(m_pPlayer));
-				m_ResolvedNVType = resolvedType;
-				SetNVPostprocess(resolvedType);
+				SetNVPostprocess(GetCameraNVType());
 			}
 			else
 			{
@@ -471,16 +469,13 @@ class DayZPlayerCameraOptics : DayZPlayerCameraIronsights
 			return;
 		}
 		
-		int resolvedType;
 		if (!state || !m_opticsUsed)
 		{
 			m_RequesterADS.Stop();
 			
 			if (IsCameraNV())
 			{
-				resolvedType = ResolveNVType(GetCameraNVType(), PlayerBase.Cast(m_pPlayer));
-				m_ResolvedNVType = resolvedType;
-				SetNVPostprocess(resolvedType);
+				SetNVPostprocess(GetCameraNVType());
 			}
 			else
 			{
@@ -523,9 +518,7 @@ class DayZPlayerCameraOptics : DayZPlayerCameraIronsights
 				if (m_opticsUsed.IsNVOptic())
 				{
 					SetCameraNV(true);
-					resolvedType = ResolveNVType(m_opticsUsed.GetCurrentNVType(), PlayerBase.Cast(m_pPlayer));
-					m_ResolvedNVType = resolvedType;
-					SetNVPostprocess(resolvedType);
+					SetNVPostprocess(m_opticsUsed.GetCurrentNVType());
 				}
 				else
 				{
@@ -565,9 +558,7 @@ class DayZPlayerCameraOptics : DayZPlayerCameraIronsights
 				if (m_opticsUsed.IsNVOptic())
 				{
 					SetCameraNV(true);
-					resolvedType = ResolveNVType(m_opticsUsed.GetCurrentNVType(), PlayerBase.Cast(m_pPlayer));
-					m_ResolvedNVType = resolvedType;
-					SetNVPostprocess(resolvedType);
+					SetNVPostprocess(m_opticsUsed.GetCurrentNVType());
 				}
 				else
 				{

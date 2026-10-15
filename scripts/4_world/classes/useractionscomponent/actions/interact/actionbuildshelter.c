@@ -1,4 +1,3 @@
-[Obsolete("1.30: driven by ActionBuildPart")]
 class ActionBuildShelter: ActionContinuousBase
 {
 	string 						m_SoundsetBuildStart;
@@ -28,7 +27,7 @@ class ActionBuildShelter: ActionContinuousBase
 	
 	override string GetText()
 	{
-		PlayerBase player = PlayerBase.Cast( GetGame().GetPlayer() );
+		PlayerBase player = PlayerBase.Cast( g_Game.GetPlayer() );
 		if ( player )
 		{
 			ConstructionActionData construction_action_data = player.GetConstructionActionData();
@@ -236,8 +235,11 @@ class ActionBuildShelter: ActionContinuousBase
 		
 		string part_name = BuildPartActionData.Cast(action_data).m_PartType;
 		
-		//build
-		construction.BuildPartServerEx( action_data.m_Player, part_name, AT_BUILD_PART );
+		if ( !construction.IsColliding( part_name ) && construction.CanBuildPart( part_name, action_data.m_MainItem, false ) )
+		{
+			//build
+			construction.BuildPartServer( action_data.m_Player, part_name, AT_BUILD_PART );
+		}
 	}
 	
 	override void OnFinishProgressClient( ActionData action_data )
@@ -250,7 +252,7 @@ class ActionBuildShelter: ActionContinuousBase
 	void DetermineConstructionSounds( ActionData action_data )
 	{
 		ConstructionActionData construction_action_data = action_data.m_Player.GetConstructionActionData();
-		ConstructionPart constrution_part = construction_action_data.GetBuildPartNoToolAtIndex(m_VariantID);
+		ConstructionPart constrution_part = construction_action_data.GetBuildPartNoToolAtIndex(m_VariantID);;
 		if (constrution_part)
 		{
 			switch (constrution_part.GetName())
@@ -320,20 +322,4 @@ class ActionBuildShelter: ActionContinuousBase
     {
         return "Base_building";
     }
-}
-
-class BuildShelterFromShelterSiteLambda : ReplaceItemWithNewLambdaBase
-{
-	void BuildShelterFromShelterSiteLambda(EntityAI old_item, string new_item_type, PlayerBase player)
-	{
-		m_OldItem = old_item;
-		m_NewItemType = new_item_type;
-	}
-	
-	override void CopyOldPropertiesToNew(notnull EntityAI old_item, EntityAI new_item)
-	{
-		super.CopyOldPropertiesToNew(old_item, new_item);
-
-		MiscGameplayFunctions.TransferItemProperties(old_item, new_item);		
-	}
 }

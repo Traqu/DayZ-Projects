@@ -3,11 +3,6 @@ class MaskBase extends Mask_Base
 {
 	float m_LowFilterEventTime;
 	
-	override ECachedEquipmentItemCategory GetCachedEquipmentCategory()
-	{
-		return ECachedEquipmentItemCategory.MASK;
-	}
-	
 	override bool IsGasMask()
 	{
 		return true;

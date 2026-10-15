@@ -3,9 +3,7 @@ class AnniversaryBox extends Container_Base
 	private const int SPAWN_SHIRTS_MAX = 60;
 	
 	#ifndef SERVER
-	#ifndef NO_GUI
 	protected AnniversaryBoxLight m_Light;
-	#endif
 	#endif
 	
 	override void DeferredInit()
@@ -13,11 +11,9 @@ class AnniversaryBox extends Container_Base
 		super.DeferredInit();		
 		
 		#ifndef SERVER
-		#ifndef NO_GUI
 		m_Light = AnniversaryBoxLight.Cast(ScriptedLightBase.CreateLight(AnniversaryBoxLight, "0 0 0"));
 		if (m_Light)
 			m_Light.AttachOnMemoryPoint(this, "light");
-		#endif
 		#endif
 				
 	}
@@ -27,10 +23,8 @@ class AnniversaryBox extends Container_Base
 		super.EEDelete(parent);
 		
 		#ifndef SERVER
-		#ifndef NO_GUI
 		if (m_Light)
 			m_Light.Destroy();
-		#endif
 		#endif
 	}	
 	

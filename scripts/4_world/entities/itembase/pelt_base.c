@@ -26,5 +26,3 @@ class WolfPelt: Pelt_Base {  };
 class SheepPelt: Pelt_Base {  };
 class MouflonPelt: Pelt_Base {  };
 class FoxPelt: Pelt_Base {  };
-class DogPelt_ColorBase: Pelt_Base {  };
-class LizardPelt: Pelt_Base {  };

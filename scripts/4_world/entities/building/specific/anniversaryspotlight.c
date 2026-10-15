@@ -1,9 +1,7 @@
 class AnniversarySpotLight : Building
 {
 	#ifndef SERVER
-	#ifndef NO_GUI
 	protected AnniversaryMainLight m_Light;	
-	#endif
 	#endif
 
 	protected bool m_LightState;
@@ -18,7 +16,6 @@ class AnniversarySpotLight : Building
 		super.OnVariablesSynchronized();
 
 		#ifndef SERVER
-		#ifndef NO_GUI
 		if (m_LightState)
 		{
 			m_Light = AnniversaryMainLight.Cast(ScriptedLightBase.CreateLight(AnniversaryMainLight, GetPosition()));
@@ -29,7 +26,6 @@ class AnniversarySpotLight : Building
 				m_Light.FadeOut(0.5);
 		}
 		#endif
-		#endif
 	}
 	
 	override void EEDelete(EntityAI parent)
@@ -37,10 +33,8 @@ class AnniversarySpotLight : Building
 		super.EEDelete(parent);
 		
 		#ifndef SERVER
-		#ifndef NO_GUI
 		if (m_Light)
 			m_Light.Destroy();
-		#endif
 		#endif
 	}
 	

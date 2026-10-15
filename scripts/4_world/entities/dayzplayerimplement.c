@@ -144,7 +144,6 @@ class DayZPlayerImplement extends DayZPlayer
 	protected bool 										m_ResetADS;
 	protected bool 										m_ProcessResetADS;
 	protected int										m_StepCounter;
-	protected int 										m_StepCounterVegetation // TMP; optimization of vegetation, collision sound playback
 	protected int 										m_NextVoNNoiseTime;
 	protected ref array<ref SyncHitInfo>				m_SyncedHitDataArray;
 	protected ref array<AbstractWave>					m_PerformedActionSounds;
@@ -163,7 +162,6 @@ class DayZPlayerImplement extends DayZPlayer
 	int													m_ActionSoundCategoryHash;
 	
 	protected float										m_dT;
-	protected ref DustEffectCeilingHandlerSynced 		m_CeilingDustHandler;
 
 	protected float m_fObstructionSmooth;
 	protected float m_fObstructionSmoothVelocity[1];
@@ -191,7 +189,7 @@ class DayZPlayerImplement extends DayZPlayer
 		m_ProcessFirearmMeleeHit = false;
 		m_ContinueFirearmMelee = false;
 		#ifdef PLATFORM_CONSOLE
-		m_Camera3rdPerson = g_Game.GetWorld().GetThirdPersonViewMode() == ThirdPersonMode.ENABLED;
+		m_Camera3rdPerson = !g_Game.GetWorld().Is3rdPersonDisabled();
 		#endif
 		m_LastSurfaceUnderHash = ("cp_gravel").Hash();
 		m_NextVoNNoiseTime = 0;
@@ -201,7 +199,6 @@ class DayZPlayerImplement extends DayZPlayer
 		m_WeaponRaiseTime = 0;
 		
 		m_CachedEquipmentStorage = CachedEquipmentStorage(this);
-		m_CeilingDustHandler = new DustEffectCeilingHandlerSynced(this);
 		
 		RegisterNetSyncVariableBoolSignal("m_TriggerPullPlayerOutOfVehicleSynch");
 	}
@@ -724,12 +721,6 @@ class DayZPlayerImplement extends DayZPlayer
 						}
 #endif
 					}
-
-					Motorbike motorbike = Motorbike.Cast(m_TransportCache);
-					if (motorbike)
-					{
-						motorbike.FallOver();
-					}
 				}
 				
 				DisableSimulation(false);
@@ -742,7 +733,7 @@ class DayZPlayerImplement extends DayZPlayer
 			}
 			else
 			{
-				PhysicsSetSimpleDeath(true);
+				PhysicsSetRagdoll(true);
 			}
 			
 			// disable voice communication
@@ -996,14 +987,9 @@ class DayZPlayerImplement extends DayZPlayer
 	
 	override void OnItemInHandsChanged()
 	{
-		OnItemInHandsChangedEx();
-	}
-	
-	override void OnItemInHandsChangedEx(bool pInstant = false, bool pChangeAnimationInstance = true)
-	{
 		//Print("inv: DayZPlayerImplement::OnItemInHandsChanged: "/* + GetEntityInHands()*/);
 		StopWeaponEvent();
-		GetItemAccessor().OnItemInHandsChanged(pInstant, pChangeAnimationInstance);
+		GetItemAccessor().OnItemInHandsChanged();
 		
 		if (!IsAlive())
 		{
@@ -1370,13 +1356,11 @@ class DayZPlayerImplement extends DayZPlayer
 			if (IsAlive() && !IsUnconscious() && data.m_HasSource && g_Game.GetMission().GetHud() && g_Game.GetPlayer() == this) //only for controlled players
 			{
 				m_DamageHealth = data.m_HealthDamage;
-				#ifndef NO_GUI
 				if (m_DamageHealth > 0.0)
 				{
 					float rel = m_DamageHealth / (GetMaxHealth("","Health") * PlayerConstants.HEAVY_HIT_THRESHOLD);
 					g_Game.GetMission().GetHud().SpawnHitDirEffect(this,m_DamageHitDir,rel);
 				}
-				#endif
 			}
 			#endif
 			
@@ -2029,7 +2013,6 @@ class DayZPlayerImplement extends DayZPlayer
 		HumanInputController hic = GetInputController();
 	
 		bool camChange = hic.CameraViewChanged();
-		int thirdPersonViewMode = g_Game.GetWorld().GetThirdPersonViewMode();
 		
 		if (IsRaised())
 		{
@@ -2040,7 +2023,7 @@ class DayZPlayerImplement extends DayZPlayer
 		}
 		
 		//! 3rd person camera
-		if (thirdPersonViewMode == ThirdPersonMode.DISABLED)
+		if (g_Game.GetWorld().Is3rdPersonDisabled())
 		{
 			m_Camera3rdPerson = false;
 		}
@@ -2299,8 +2282,6 @@ class DayZPlayerImplement extends DayZPlayer
 			return;
 		}
 
-		HumanCommandVehicle hcv;
-
 		HumanInputController hic = GetInputController();
 		EntityAI entityInHands = GetEntityInHands();
 		GetMovementState(m_MovementState);
@@ -2397,7 +2378,6 @@ class DayZPlayerImplement extends DayZPlayer
 					return;
 				}
 			}
-
 			// start moving
 
 			// start falling ? (could happen after climbing)
@@ -2437,25 +2417,11 @@ class DayZPlayerImplement extends DayZPlayer
 		// vehicle handling
 		if (pCurrentCommandID == DayZPlayerConstants.COMMANDID_VEHICLE)
 		{
-			hcv = GetCommand_Vehicle();
+			HumanCommandVehicle hcv = GetCommand_Vehicle();
 			if (hcv.WasGearChange())
 			{
 				GearChangeActionCallback cb = GearChangeActionCallback.Cast(AddCommandModifier_Action(DayZPlayerConstants.CMD_ACTIONMOD_SHIFTGEAR, GearChangeActionCallback));
 				cb.SetVehicleCommand(hcv);
-			}
-			
-			Transport transport;
-			int seatPos;
-
-			transport = hcv.GetTransport();
-			seatPos = hcv.GetVehicleSeat();
-			if (IsAlive() && IsAuthority() && transport && transport.CrewShouldEject(seatPos))
-			{
-				// TODO(kumarjac):	Temporary code until we have a ragdoll command to activate instead
-				// 					Due to lack of time, we opted to re-use unconsciousness here instead
-				ModifiersManager mdfMan;
-				GetGame().GetMission().MissionScript.CallFunction(this, "GetModifiersManager", mdfMan, null);
-				mdfMan.ActivateModifier(eModifiers.MDF_UNCONSCIOUSNESS);
 			}
 			
 			return;
@@ -2528,7 +2494,7 @@ class DayZPlayerImplement extends DayZPlayer
 					fallDamageData.m_LandType = HumanCommandFall.LANDTYPE_NONE; 
 					OnLand(pCurrentCommandID, fallDamageData);
 					npar = type.GetNoiseParamsLandLight();
-					AddNoise(npar);
+					AddNoise(npar, NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather()));
 				}
 				else if (fallDamageData.m_Height < 3.0)
 				{
@@ -2539,21 +2505,21 @@ class DayZPlayerImplement extends DayZPlayer
 					
 					OnLand(pCurrentCommandID, fallDamageData);
 					npar = type.GetNoiseParamsLandLight();
-					AddNoise(npar);
+					AddNoise(npar, NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather()));
 				}
 				else if (fallDamageData.m_Height < 5.0)
 				{
 					fallDamageData.m_LandType = HumanCommandFall.LANDTYPE_MEDIUM;
 					OnLand(pCurrentCommandID, fallDamageData);
 					npar = type.GetNoiseParamsLandHeavy();
-					AddNoise(npar);
+					AddNoise(npar, NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather()));
 				}
 				else
 				{
 					fallDamageData.m_LandType = HumanCommandFall.LANDTYPE_HEAVY;
 					OnLand(pCurrentCommandID, fallDamageData);
 					npar = type.GetNoiseParamsLandHeavy();
-					AddNoise(npar);
+					AddNoise(npar, NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather()));
 				}
 				
 				if (fallDamageData.m_Height >= DayZPlayerImplementFallDamage.HEALTH_HEIGHT_LOW && GetInstanceType() == DayZPlayerInstanceType.INSTANCETYPE_CLIENT)
@@ -2651,7 +2617,7 @@ class DayZPlayerImplement extends DayZPlayer
 							vonpar = pt.GetNoiseParamsShout();
 						break; 
 					}
-					AddNoise(vonpar);
+					AddNoise(vonpar, NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather()));
 				}
 			}
 		}
@@ -2877,53 +2843,31 @@ class DayZPlayerImplement extends DayZPlayer
 		//uncon
 		if ( GetCurrentCommandID() == DayZPlayerConstants.COMMANDID_UNCONSCIOUS )
 		{
-#ifdef USER_kumarjac
-			HumanCommandUnconscious hcu = GetCommand_Unconscious();
-			if (hcu && hcu.IsRagdoll() && m_Camera3rdPerson)
-			{
-				return DayZPlayerCameras.DAYZCAMERA_3RD_ERC;
-			}
-#endif
-			
 			return DayZPlayerCameras.DAYZCAMERA_1ST_UNCONSCIOUS;
 		}
 		
-		// Vehicle
 		HumanCommandVehicle vehicleCommand = GetCommand_Vehicle();
-		int thirdPersonViewMode = g_Game.GetWorld().GetThirdPersonViewMode();
-		if (vehicleCommand)
-		{
-			if (thirdPersonViewMode >= ThirdPersonMode.ENABLED)
-			{
-				if (!m_Camera3rdPerson)
-				{
-					return DayZPlayerCameras.DAYZCAMERA_1ST_VEHICLE;
-				}
-				else
-				{
-					Transport transport = vehicleCommand.GetTransport();
-					if (transport && GetParent())
-					{
-						return transport.Get3rdPersonCameraType();
-					}
-				}
-			}
-			else
-			{
-				return DayZPlayerCameras.DAYZCAMERA_1ST_VEHICLE;
-			}
-		}
-		
-		// Character
-		if (thirdPersonViewMode == ThirdPersonMode.DISABLED || thirdPersonViewMode == ThirdPersonMode.VEHICLES_ONLY)
-			m_Camera3rdPerson = false;
 		
 		if (!m_Camera3rdPerson)
 		{
+			if (vehicleCommand)
+			{
+				return DayZPlayerCameras.DAYZCAMERA_1ST_VEHICLE;
+			}
+			
 			return DayZPlayerCameras.DAYZCAMERA_1ST;
 		}
 		else
-		{			
+		{
+			if (vehicleCommand)
+			{
+				Transport transport = vehicleCommand.GetTransport();
+				if (transport && GetParent())
+				{
+					return transport.Get3rdPersonCameraType();
+				}
+			}
+			
 			//! get movement state 
 			GetMovementState(m_MovementState);
 			
@@ -3239,6 +3183,16 @@ class DayZPlayerImplement extends DayZPlayer
 
 		return AnimRangedWeaponType.None;
 	}
+	
+	string GetSurfaceType(SurfaceAnimationBone limbType)
+	{
+		string surfaceType;
+		int liquidType;
+
+		g_Game.SurfaceUnderObjectByBoneCorrectedLiquid(this, limbType, surfaceType, liquidType);
+		
+		return surfaceType;
+	}
 
 	//-------------------------------------------------------------
 	//!
@@ -3269,162 +3223,82 @@ class DayZPlayerImplement extends DayZPlayer
 	void OnStepEvent(string pEventType, string pUserString, int pUserInt)
 	{
 		vector orientation;
-		vector position = GetPosition();
-		DayZPlayerType playerType = GetDayZPlayerType();
+		DayZPlayerType type = GetDayZPlayerType();
 		HumanMovementState	state = new HumanMovementState();
 		GetMovementState(state);
 		
-		SurfaceInfo surfaceInfo;
-		if (pUserInt < 100)
-		{
-			string boneName = "";
-			if (pUserInt % 2 == 1)
-			{
-				boneName = "leftfoot";
-				surfaceInfo = g_Game.GetSurfaceInfoUnderObjectByBone(this, SurfaceAnimationBone.LeftBackLimb);
-				if (!surfaceInfo)
-				{
-					surfaceInfo = g_Game.GetSurfaceInfoUnderObjectByBone(this, SurfaceAnimationBone.RightBackLimb);
-					boneName = "rightfoot";
-				}
-			}
-			else
-			{
-				boneName = "rightfoot";
-				surfaceInfo = g_Game.GetSurfaceInfoUnderObjectByBone(this, SurfaceAnimationBone.RightBackLimb);
-				if (!surfaceInfo)
-				{
-					surfaceInfo = g_Game.GetSurfaceInfoUnderObjectByBone(this, SurfaceAnimationBone.LeftBackLimb);
-					boneName = "leftfoot";
-				}
-			}
-			
-			if (GetInstanceType() == DayZPlayerInstanceType.INSTANCETYPE_SERVER || !GetGame().IsMultiplayer())
-			{
-				//synced dusty ceiling effect
-				if (surfaceInfo)
-				{
-					HandleCeilingDustStepEffect(surfaceInfo, boneName);
-				}
-			}
-			
-			#ifdef DIAG_DEVELOPER
-			if (GetInstanceType() == DayZPlayerInstanceType.INSTANCETYPE_CLIENT)
-			{
-				if (DiagMenu.GetBool(DiagMenuIDs.MISC_PLAYER_SURFACE_DEBUG))
-				{
-					string surfaceType = "NULL";
-					if (surfaceInfo)
-						surfaceType = surfaceInfo.GetSurfaceType();
-					
-					CharacterStepsDebug.SetStepData(boneName, surfaceType);
-				}
-			}
-			#endif
-		}
-		
 		#ifndef SERVER
-		#ifndef NO_GUI
-		DayZPlayerTypeStepSoundLookupTable table = playerType.GetStepSoundLookupTable();
+		DayZPlayerTypeStepSoundLookupTable table = type.GetStepSoundLookupTable();
 		SoundObjectBuilder soundBuilder = NULL;
 		if (pUserInt < 100)
 		{
-			if (surfaceInfo)
+			string surface;
+			if (pUserInt % 2 == 1)
 			{
-				m_LastSurfaceUnderHash = surfaceInfo.GetSurfaceType().Hash();
-				
-				if (state.m_iMovement == DayZPlayerConstants.MOVEMENTIDX_SPRINT)
-				{
-					orientation = -GetDirection();//Using direction to compute forward dot product of surface in the direction oposite player
-				
-					vector surfaceNormal = g_Game.SurfaceGetNormal(position[0], position[2]);
-					float dotWithForward = vector.Dot(surfaceNormal, orientation);
-				
-					float pitch = Math.Atan2(-dotWithForward, surfaceNormal[1]) * Math.RAD2DEG;
-				
-					//VectorToYaw using first and second float insted of first and third then why it is need adjustment
-					orientation[1] = orientation[2]; 
-					orientation[2] = 0;
-				
-					float yaw = orientation.VectorToYaw();
-				
-					orientation[0] = -yaw + 90; 
-					orientation[1] = pitch;
-
-
-					int stepParticleID = surfaceInfo.GetStepParticleId();
-					if (stepParticleID > 0)
-					{
-						ParticleSource source = ParticleManager.GetInstance().PlayInWorldEx(stepParticleID, null, position);
-						//Direction align with surface in the opposite direction to the player
-						source.SetOrientation(orientation);
-					}
-				}
-				
-				soundBuilder = table.GetSoundBuilder(pUserInt, state.m_iMovement, m_LastSurfaceUnderHash, GetBootsType());
+				surface = GetSurfaceType(SurfaceAnimationBone.LeftBackLimb);
+				if (surface.Length() == 0)//if no surface found, try other leg
+					surface = GetSurfaceType(SurfaceAnimationBone.RightBackLimb);
 			}
+			else
+			{
+				surface = GetSurfaceType(SurfaceAnimationBone.RightBackLimb);
+				if (surface.Length() == 0)//if no surface found, try other leg
+					surface = GetSurfaceType(SurfaceAnimationBone.LeftBackLimb);
+			}
+			
+			if (surface.Length() != 0)
+				m_LastSurfaceUnderHash = surface.Hash();
+			
+			if (state.m_iMovement == DayZPlayerConstants.MOVEMENTIDX_SPRINT)
+			{
+				orientation = GetOrientation() * (-1);
+				int stepParticleID = Surface.GetStepsParticleID(surface);
+			
+				if (stepParticleID > 0)
+				{
+					ParticleManager.GetInstance().PlayInWorldEx(stepParticleID, null, GetPosition(), orientation);
+				}
+			}
+			
+			soundBuilder = table.GetSoundBuilder(pUserInt, state.m_iMovement, m_LastSurfaceUnderHash, GetBootsType());
 		}
 		else
 		{
-			surfaceInfo = g_Game.GetSurfaceInfoUnderObject(this);
-			if (surfaceInfo)
-				m_LastSurfaceUnderHash = surfaceInfo.GetSurfaceType().Hash();
+			string surface2 = GetSurfaceType();
+			if (surface2.Length() != 0)
+				m_LastSurfaceUnderHash = surface2.Hash();
 			
 			soundBuilder = table.GetSoundBuilder(pUserInt, state.m_iMovement, m_LastSurfaceUnderHash, GetBootsType());
 		}
 
-		if (soundBuilder != null && g_Game.GetPlayer())
+		if (soundBuilder != NULL && g_Game.GetPlayer())
 		{
-			m_StepCounterVegetation++;
-
-			if (m_StepCounterVegetation >= 3)
+			orientation = Vector(0, 0, 0);
+			vector edgeLength = Vector(1.5, 3.0, 1.5);
+			array<Object> excludedObjects = new array<Object>;
+			excludedObjects.Insert(this);
+			array<Object> collidedObjects = new array<Object>;
+			
+			if (g_Game.IsBoxCollidingGeometry(GetPosition(), orientation, edgeLength, ObjIntersectView, ObjIntersectNone, excludedObjects, collidedObjects))
 			{
-				m_StepCounterVegetation = 0;
-				g_Game.ProfilerStart("Player_Vegetation_Sounds");
-
-				orientation = vector.Zero;
-				vector edgeLength = Vector(0.75, 2.5, 0.75);
-				array<Object> excludedObjects = new array<Object>();
-				excludedObjects.Insert(this);
-				array<Object> collidedObjects = new array<Object>();
-				
-				if (g_Game.IsBoxCollidingGeometry(position, orientation, edgeLength, ObjIntersectView, ObjIntersectNone, excludedObjects, collidedObjects))
+				for (int i = 0; i < collidedObjects.Count(); ++i)
 				{
-					foreach (Object obj : collidedObjects)
+					WoodBase colObject = WoodBase.Cast(collidedObjects.Get(i));
+					if (colObject && colObject.HasPlayerCollisionParticle() && state.m_iMovement > DayZPlayerConstants.MOVEMENTIDX_WALK)
+						MiscEffects.PlayVegetationCollideParticles(colObject, this);
+					
+					if (colObject && colObject.HasPlayerCollisionSound())
 					{
-						WoodBase colPlant;
-						if (Class.CastTo(colPlant, obj))
+						for (int j = 0; j < type.GetVegetationSounds().Count(); ++j)
 						{
-							if (colPlant.HasPlayerCollisionParticle() && state.m_iMovement > DayZPlayerConstants.MOVEMENTIDX_WALK)
-								MiscEffects.PlayVegetationCollideParticles(colPlant, this);
+							VegetationSound vegetationSound = type.GetVegetationSounds().Get(j);
 							
-							if (colPlant.HasPlayerCollisionSound())
+							if (vegetationSound.GetAnimEventIds().Find(pUserInt) >= 0)
 							{
-								SoundObject vegSoundObject;
-								 
-								StaticObjectType plantType = StaticObjectType.Cast(colPlant.GetEntityType());
-
-								//custom lookup first
-								SoundObjectBuilder vegSoundObjectBuilder = plantType.GetVegetationSoundBuilderFromEventID(pUserInt);
-								if (vegSoundObjectBuilder)
-								{
-									vegSoundObject = vegSoundObjectBuilder.BuildSoundObject();
-								}
-								else //then generic
-								{
-									array<ref VegetationSound> vegSoundArray = playerType.GetVegetationSounds();
-									foreach (VegetationSound vegetationSound: vegSoundArray)
-									{
-										if (vegetationSound.GetAnimEventIds().Find(pUserInt) >= 0)
-										{
-											vegSoundObjectBuilder = vegetationSound.GetSoundObjectBuilder();
-											vegSoundObject = vegSoundObjectBuilder.BuildSoundObject();
-											break;
-										}
-									}
-								}
+								SoundObjectBuilder vegSoundObjectBuilder = vegetationSound.GetSoundObjectBuilder();
+								SoundObject vegSoundObject = vegetationSound.GetSoundObjectBuilder().BuildSoundObject();
 								
-								if (vegSoundObject != null)
+								if (vegSoundObject != NULL)
 								{
 									AttenuateSoundIfNecessary(vegSoundObject);
 									PlaySound(vegSoundObject, vegSoundObjectBuilder);
@@ -3433,50 +3307,47 @@ class DayZPlayerImplement extends DayZPlayer
 								break;
 							}
 						}
+						
+						break;
 					}
 				}
-
-				g_Game.ProfilerStop("Player_Vegetation_Sounds");
 			}
-				
+			
 			SoundObject soundObject = soundBuilder.BuildSoundObject();
-			if (soundObject != null)
+			if (soundObject != NULL)
 			{
 				AttenuateSoundIfNecessary(soundObject);
 				PlaySound(soundObject, soundBuilder);
 			}
-			
 		}
-		#endif
 		#endif
 		
 		if (g_Game.IsServer())
 		{
 			m_StepCounter++;//move outside of server condition if needed on client as well
 
-			float noiseMultiplier = 0;			
+			float noiseMultiplier = 0;
 			
 			NoiseParams noiseParams;
 			if (state.m_iStanceIdx == DayZPlayerConstants.STANCEIDX_ERECT || state.m_iStanceIdx == DayZPlayerConstants.STANCEIDX_RAISEDERECT)
-				noiseParams = playerType.GetNoiseParamsStand();
+				noiseParams = type.GetNoiseParamsStand();
 			else if (state.m_iStanceIdx == DayZPlayerConstants.STANCEIDX_CROUCH || state.m_iStanceIdx == DayZPlayerConstants.STANCEIDX_RAISEDCROUCH)
-				noiseParams = playerType.GetNoiseParamsCrouch();
+				noiseParams = type.GetNoiseParamsCrouch();
 			else if (state.m_iStanceIdx == DayZPlayerConstants.STANCEIDX_PRONE || state.m_iStanceIdx == DayZPlayerConstants.STANCEIDX_RAISEDPRONE)
-				noiseParams = playerType.GetNoiseParamsProne();
+				noiseParams = type.GetNoiseParamsProne();
 			else
 			{
 				Debug.Log(string.Format("Wrong stance, id: %1 using backup with stand stance (id: 0)", state.m_iStanceIdx));
-				noiseParams = playerType.GetNoiseParamsStand();
+				noiseParams = type.GetNoiseParamsStand();
 			}
 			
-			noiseMultiplier = NoiseAIEvaluate.GetNoiseMultiplier(this);
+			noiseMultiplier = NoiseAIEvaluate.GetNoiseMultiplier(this) * NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather());
 									
 			AddNoise(noiseParams, noiseMultiplier);
 			
 			if ((m_StepCounter % PlayerConstants.CHECK_EVERY_N_STEP) == 0)
 			{
 				ProcessFeetDamageServer(pUserInt);
-				m_StepCounter = 0;
 			}
 		}
 	}
@@ -3574,7 +3445,7 @@ class DayZPlayerImplement extends DayZPlayer
 
 		if (soundEvent != null)
 		{
-			if (!g_Game.IsHeadlessOrDedicatedServer())
+			if (!g_Game.IsDedicatedServer())
 			{
 				SoundObjectBuilder builder = soundEvent.GetSoundBuilderEx(m_ActionSoundCategoryHash);
 				if (builder)
@@ -3600,14 +3471,13 @@ class DayZPlayerImplement extends DayZPlayer
 			
 			if (g_Game.IsServer())
 			{
-				AddNoise(soundEvent.m_NoiseParams);
+				AddNoise(soundEvent.m_NoiseParams, NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather()));
 			}
 		}
 	}
 
 	void ProcessAttachmentEvent(string pEventType, string pUserString, int pUserInt)
 	{
-#ifndef NO_GUI
 		DayZPlayerType type = GetDayZPlayerType();
 		DayZPlayerTypeAttachmentSoundLookupTable table = type.GetAttachmentSoundLookupTable();
 			
@@ -3635,7 +3505,6 @@ class DayZPlayerImplement extends DayZPlayer
 				}
 			}
 		}
-#endif
 	}
 
 	void SetVariablesLadderSoundObjectBuilder(SoundObjectBuilder soundObjectBuilder)
@@ -3683,7 +3552,7 @@ class DayZPlayerImplement extends DayZPlayer
 		
 		if (soundEvent != NULL)
 		{
-			if (!g_Game.IsHeadlessOrDedicatedServer())
+			if (!g_Game.IsDedicatedServer())
 			{
 				SoundObjectBuilder objectBuilder = soundEvent.GetSoundBuilder();
 				if (GetCommand_Ladder())
@@ -3706,7 +3575,7 @@ class DayZPlayerImplement extends DayZPlayer
 			if (g_Game.IsServer())
 			{
 				if (soundEvent.m_NoiseParams != NULL)
-					g_Game.GetNoiseSystem().AddNoise(this, soundEvent.m_NoiseParams);
+					g_Game.GetNoiseSystem().AddNoise(this, soundEvent.m_NoiseParams, NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather()));
 			}
 		}
 	}
@@ -3797,11 +3666,6 @@ class DayZPlayerImplement extends DayZPlayer
 	
 	void ProcessFeetDamageServer(int pUserInt);
 	
-	protected void HandleCeilingDustStepEffect(SurfaceInfo surfaceInfo, string boneName)
-	{
-		//player variant, synced
-		m_CeilingDustHandler.OnStepUpdate(surfaceInfo, boneName);
-	}
 
 	//-------------------------------------------------------------
 	//!
@@ -4060,15 +3924,11 @@ class DayZPlayerImplement extends DayZPlayer
 		}
 		
 		// Draw equipped NVGs
-		CachedEquipmentStorageQuery query = new CachedEquipmentStorageQuery();
-
-		query.m_Category 		= ECachedEquipmentItemCategory.NVG;
-		query.m_Placement 		= ECachedEquipmentPlacement.ATTACHMENT;
-		query.m_ParentPlacement = {InventorySlots.HEADGEAR, InventorySlots.EYEWEAR};
-
-		array<Entity> nvgs = GetCachedEquipment().GetEntitiesByCategory(query);
-
 		EntityAI nvAttachment;
+		CachedEquipmentStorageQuery query 	= new CachedEquipmentStorageQuery();
+		query.m_Category 					= ECachedEquipmentItemCategory.NVG;
+		query.m_Placement 					= ECachedEquipmentPlacement.ATTACHMENT;
+		array<Entity> nvgs = GetCachedEquipment().GetEntitiesByCategory(query);
 		foreach (Entity nvg : nvgs)
 		{
 			nvAttachment = EntityAI.Cast(nvg);
@@ -4101,9 +3961,9 @@ class DayZPlayerImplement extends DayZPlayer
 	}
 #endif
 	
-	///////////////////////////////////
-	//Obsolete stuff below this point//
-	///////////////////////////////////
+///////////////////////////////////
+//Obsolete stuff below this point//
+///////////////////////////////////
 	
 	static const int 									DEAD_SCREEN_DELAY = 1000; //! DEPRECATED
 	protected bool										m_CameraEyeZoom; //DEPRECATED
@@ -4117,15 +3977,4 @@ class DayZPlayerImplement extends DayZPlayer
 	void StopADSTimer(); //DEPRECATED
 	void SendCompleteWeaponRaiseJuncture(); //DEPRECATED
 	void DepleteStamina(EStaminaModifiers modifier, float dT = -1) {};
-
-	[Obsolete("1.30: uses CGame GetSurfaceInfo* methods instead")]
-	string GetSurfaceType(SurfaceAnimationBone limbType)
-	{
-		string surfaceType;
-		int liquidType;
-
-		g_Game.SurfaceUnderObjectByBoneCorrectedLiquid(this, limbType, surfaceType, liquidType);
-		
-		return surfaceType;
-	}
 }

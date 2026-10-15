@@ -41,7 +41,7 @@ class ActionCarDoors: ActionInteractBase
 				animSource = car.GetAnimSourceFromSelection(car.GetDoorSelectionNameFromSeatPos(crewIdx));
 				
 				//! see if door is in reach
-				if (!car.CanReachDoorsFromSeat(animSource, crewIdx) || !car.IsAreaAtDoorFreeDiag(crewIdx))
+				if (!car.CanReachDoorsFromSeat(animSource, crewIdx) || !car.IsAreaAtDoorFree(crewIdx))
 				{
 					return false;
 				}
@@ -88,6 +88,7 @@ class ActionCarDoors: ActionInteractBase
 		
 		if (car)
 		{
+			car.ForceUpdateLightsStart();
 			car.SetAnimationPhase(animSource, phase);
 		}
 	}
@@ -101,6 +102,11 @@ class ActionCarDoors: ActionInteractBase
 		if (player && player.GetCommand_Vehicle())
 		{
 			car = CarScript.Cast(player.GetCommand_Vehicle().GetTransport());
+		}
+
+		if (car)
+		{
+			car.ForceUpdateLightsEnd();
 		}
 	}
 	

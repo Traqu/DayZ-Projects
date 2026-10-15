@@ -38,6 +38,11 @@ class EmoteCB : HumanCommandActionCallback
 				m_Manager.LogSuicide();
 			break;
 			
+			case UA_ANIM_EVENT :
+				if (m_callbackID == DayZPlayerConstants.CMD_GESTUREFB_SURRENDERIN)
+					m_Manager.m_ItemToBeCreated = true;
+			break;
+			
 			case EmoteConstants.EMOTE_SUICIDE_BLEED :
 				if (g_Game.IsServer())
 					m_Manager.CreateBleedingEffect(m_callbackID);
@@ -125,6 +130,8 @@ class EmoteManager
 	ref EmoteLauncher 		m_MenuEmote;
 	bool					m_bEmoteIsRequestPending;
 	bool					m_bEmoteIsPlaying;
+	bool 					m_IsSurrendered;
+	bool 					m_ItemToBeCreated;
 	bool 					m_CancelEmote;
 	bool 					m_InstantCancelEmote;
 	bool 					m_GestureInterruptInput;
@@ -150,6 +157,7 @@ class EmoteManager
 	protected const int 	CALLBACK_CMD_GESTURE_INTERRUPT = -3;
 	protected const int 	CALLBACK_CMD_INSTACANCEL = -4;
 	PluginAdminLog 			m_AdminLog;
+	protected ref Timer 	m_ReservationTimer;
 
 	protected ref map<int, ref EmoteBase>		m_NameEmoteMap; //<emote_ID,EmoteBase>
 	protected ref array<ref EmoteBase>			m_EmoteClassArray; //registered 'EmoteBase' object refs
@@ -190,6 +198,9 @@ class EmoteManager
 			m_AdminLog = PluginAdminLog.Cast(GetPlugin(PluginAdminLog));
 		}
 		
+		m_ReservationTimer = new Timer();
+		m_ReservationTimer.Run(8, this, "CheckEmoteLockedState", null, true);
+		
 		m_HumanSwimSettings = m_Player.GetDayZPlayerType().CommandSwimSettingsW();
 		
 		ConstructData();
@@ -197,6 +208,8 @@ class EmoteManager
 	
 	void ~EmoteManager()
 	{
+		if (m_ReservationTimer && m_ReservationTimer.IsRunning())
+			m_ReservationTimer.Stop();
 	}
 	
 	void ConstructData()
@@ -289,16 +302,23 @@ class EmoteManager
 		if (m_Player.IsRestrained())
 			return;
 		
+		if (m_ItemToBeCreated)
+		{
+			if (g_Game.IsServer() && m_Callback && !m_Player.GetItemInHands())
+			{
+				m_Player.GetHumanInventory().CreateInHands("SurrenderDummyItem");
+			}
+			m_ItemToBeCreated = false;
+		}
+		
 		int gestureSlot = 0;
 		#ifndef SERVER
 			gestureSlot = DetermineGestureIndex();
 		#endif
 		
 		//nuclear solution to inventory question
-		#ifndef NO_GUI
 		if (g_Game.IsClient() && g_Game.GetUIManager().FindMenu(MENU_INVENTORY) && IsEmotePlaying())
 			m_Player.CloseInventoryMenu();
-		#endif
 		
 		//deferred emote cancel
 		if (m_InstantCancelEmote) //'hard' cancel
@@ -311,7 +331,7 @@ class EmoteManager
 			m_InstantCancelEmote = false;
 			SetPending(false);
 			
-			if (m_Player.IsSurrendered())
+			if (m_IsSurrendered)
 				ClearSurrenderState();
 			else
 				SetEmoteLockState(false);
@@ -321,7 +341,7 @@ class EmoteManager
 			SetPending(false);
 			m_CancelEmote = false;
 			
-			if (m_Player.IsSurrendered())
+			if (m_IsSurrendered)
 				ClearSurrenderState();
 			else if (m_Callback)
 				m_Callback.InternalCommand(DayZPlayerConstants.CMD_ACTIONINT_INTERRUPT);
@@ -362,7 +382,7 @@ class EmoteManager
 		else if (m_Callback)
 		{
 			bool uiGesture = false;
-			if (!g_Game.IsHeadlessOrDedicatedServer())
+			if (!g_Game.IsDedicatedServer())
 			{
 				uiGesture = g_Game.GetUIManager().IsMenuOpen(MENU_GESTURES);
 				
@@ -459,8 +479,20 @@ class EmoteManager
 			{
 				OnEmoteEnd();
 			}
+			else if (!m_Player.GetItemInHands() && m_IsSurrendered && !m_ItemToBeCreated && (!m_MenuEmote || m_MenuEmote.GetForced() != EmoteLauncher.FORCE_NONE)) //play only when there is time to do so
+			{
+				PlaySurrenderInOut(false);
+				return;
+			}
 			// getting out of surrender state
-			else if (m_Player.IsSurrendered() && (m_HIC.IsSingleUse() || m_HIC.IsContinuousUseStart() || m_HIC.IsWeaponRaised()))
+			else if (m_IsSurrendered && m_Player.GetItemInHands() && (m_HIC.IsSingleUse() || m_HIC.IsContinuousUseStart() || m_HIC.IsWeaponRaised()))
+			{
+				if (m_Player.GetItemInHands())
+					m_Player.GetItemInHands().DeleteSafe();//Note, this keeps item 'alive' until it is released by all the systems (inventory swapping etc.)
+				return;
+			}
+			// fallback in case lock does not end properly
+			else if (m_IsSurrendered && (!m_Player.GetItemInHands() || (m_Player.GetItemInHands() && m_Player.GetItemInHands().GetType() != "SurrenderDummyItem" && m_EmoteLockState)))
 			{
 				ClearSurrenderState();
 				return;
@@ -502,7 +534,7 @@ class EmoteManager
 		m_bEmoteIsPlaying = false;
 		SetPending(false);
 		
-		if (m_Player.IsSurrendered())
+		if (m_IsSurrendered)
 			return;
 		
 		m_GestureInterruptInput = false;
@@ -571,11 +603,10 @@ class EmoteManager
 			pCtx.Read(forced);
 			pCtx.Read(guaranteed);
 			
-			if (gestureID != 0)
+			if (gestureID != 0) 
 			{
 				// Check if player's state has changed since request was sent
-
-				if (m_Player.IsSwimming() || m_Player.GetCommand_Swim())
+				if (m_Player.IsSwimming())
 				{
 					// Player is now in water - reject the emote
 					gestureID = CALLBACK_CMD_INVALID;
@@ -593,7 +624,7 @@ class EmoteManager
 			}
 			
 			EmoteBase emoteData;
-			if ((m_Callback || m_Player.IsSurrendered()) && (forced == EmoteLauncher.FORCE_ALL || (forced == EmoteLauncher.FORCE_DIFFERENT && m_CurrentGestureID != gestureID)))
+			if ((m_Callback || m_IsSurrendered) && (forced == EmoteLauncher.FORCE_ALL || (forced == EmoteLauncher.FORCE_DIFFERENT && m_CurrentGestureID != gestureID)))
 			{	
 				if (m_Callback)
 				{
@@ -635,6 +666,8 @@ class EmoteManager
 	
 	void AfterStoreLoad()
 	{
+		if (m_Player.GetItemInHands() && SurrenderDummyItem.Cast(m_Player.GetItemInHands()))
+			m_Player.GetItemInHands().Delete();
 	}
 	
 	bool PlayEmote(int id)
@@ -645,7 +678,7 @@ class EmoteManager
 		ClearDeferredExecution();
 		SetPending(false);
 		
-		if (CanPlayEmote(id))
+		//if (CanPlayEmote(id))
 		{
 			EmoteBase emote;
 			m_NameEmoteMap.Find(id,emote);
@@ -1043,6 +1076,12 @@ class EmoteManager
 			{
 				return false;
 			}
+			
+			SurrenderDummyItem sda;
+			if (m_Player.IsItemsToDelete() && Class.CastTo(sda,item) && !sda.IsSetForDeletion())
+			{
+				return false;
+			}
 		}
 		
 		if ((m_Player.GetWeaponManager() && m_Player.GetWeaponManager().IsRunning()) || (m_Player.GetActionManager() && m_Player.GetActionManager().GetRunningAction()))
@@ -1055,7 +1094,7 @@ class EmoteManager
 			return false;
 		}
 		
-		if (m_Player.GetCommand_Vehicle() || m_Player.GetCommand_Swim())
+		if (m_Player.GetCommand_Vehicle())
 		{
 			return false;
 		}
@@ -1070,7 +1109,7 @@ class EmoteManager
 		}
 		
 		//"locks" player in surrender state
-		if (m_Player.IsSurrendered() && (id != EmoteConstants.ID_EMOTE_SURRENDER))
+		if (m_IsSurrendered && (id != EmoteConstants.ID_EMOTE_SURRENDER))
 		{
 			return false;
 		}
@@ -1208,7 +1247,6 @@ class EmoteManager
 		m_EmoteLockState = state;
 	}
 	
-	[Obsolete("1.30: no replacement")]
 	void CheckEmoteLockedState()
 	{
 		if (!m_Player.GetItemInHands() || (m_Player.GetItemInHands() && !SurrenderDummyItem.Cast(m_Player.GetItemInHands())))
@@ -1224,7 +1262,7 @@ class EmoteManager
 	//! directly force-ends surrender state AND requests hard cancel
 	void EndSurrenderRequest(SurrenderData data = null)
 	{
-		if (m_Player.IsSurrendered() && data)
+		if (m_IsSurrendered && data)
 		{
 			PostSurrenderRequestServer();
 			data.End();
@@ -1242,20 +1280,24 @@ class EmoteManager
 		}
 	}
 	
-	//! Surrender state cleared
-	void ClearSurrenderState()
+	//! Queues item deletion only, surrender state cleared from item event directly
+	protected void ClearSurrenderState()
 	{
-		if (m_Player.IsSurrendered())
+		if (m_IsSurrendered)
 		{
-			m_Player.SetSurrenderState(false);
+			SurrenderDummyItem dummyItem = SurrenderDummyItem.Cast(m_Player.GetItemInHands());
+			if (dummyItem)
+				dummyItem.DeleteSafe();
+			
+			m_IsSurrendered = false;
 			SetEmoteLockState(false);
+			m_ItemToBeCreated = false;
 		}
 	}
 	
-	[Obsolete("1.30: Use PlayerBase::SetSurrenderState instead")]
 	void ForceSurrenderState(bool state)
 	{
-		m_Player.SetSurrenderState(state);
+		m_IsSurrendered = state;
 		SetEmoteLockState(IsEmotePlaying());
 	}
 	
@@ -1317,7 +1359,7 @@ class EmoteManager
 		{
 			return true;
 		}
-		else if (m_Player.IsPlayerInStance(DayZPlayerConstants.STANCEMASK_CROUCH | DayZPlayerConstants.STANCEMASK_RAISEDCROUCH) && waterLevel >= m_HumanSwimSettings.m_fToErectLevel)
+		else if (m_Player.IsPlayerInStance(DayZPlayerConstants.STANCEMASK_CROUCH | DayZPlayerConstants.STANCEIDX_RAISEDCROUCH) && waterLevel >= m_HumanSwimSettings.m_fToErectLevel)
 		{
 			return true;
 		}
@@ -1327,7 +1369,7 @@ class EmoteManager
 	
 	bool IsEmotePlaying()
 	{
-		return m_bEmoteIsPlaying || m_Player.IsSurrendered() || m_bEmoteIsRequestPending;
+		return m_bEmoteIsPlaying || m_IsSurrendered || m_bEmoteIsRequestPending;
 	}
 	
 	map<int,ref EmoteBase> GetNameEmoteMap()
@@ -1377,10 +1419,6 @@ class EmoteManager
 	protected void PickEmote(int gestureslot)
 	{
 	}
-	
-	bool 					m_IsSurrendered;
-	bool 					m_ItemToBeCreated;
-	protected ref Timer 	m_ReservationTimer;
 };
 
 class SurrenderData

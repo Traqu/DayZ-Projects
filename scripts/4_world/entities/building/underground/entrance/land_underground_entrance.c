@@ -63,9 +63,7 @@ class Land_Underground_EntranceBase : House
 	EntranceLight 							m_InteriorLight3;
 	
 	#ifndef SERVER
-	#ifndef NO_GUI
 	private ref Timer m_TempHotfixTimer;
-	#endif
 	#endif
 	private const float TEMP_HOTIX_TIMESLICE = 0.01;
 	
@@ -77,13 +75,11 @@ class Land_Underground_EntranceBase : House
 		RegisterNetSyncVariableInt("m_DoorState", 0, EnumTools.GetLastEnumValue(EUndegroundEntranceState));
 		
 		#ifndef SERVER
-		#ifndef NO_GUI
 		g_Game.GetCallQueue( CALL_CATEGORY_SYSTEM ).CallLater( CreateLights, 250);
 		
 		//! Temporary hotfix for EOnPostSimulate/EOnFrame methods not beeing called on static objects
 		m_TempHotfixTimer = new Timer();
 		m_TempHotfixTimer.Run(TEMP_HOTIX_TIMESLICE, this, "EOnPostSimulate", null, true);
-		#endif
 		#endif
 	}
 	
@@ -93,7 +89,6 @@ class Land_Underground_EntranceBase : House
 	{
 		Land_Underground_Panel.UnregisterEntrance(this);
 		#ifndef SERVER
-		#ifndef NO_GUI
 		CleanUpOnDeleteClient();
 		
 		if (m_TempHotfixTimer)
@@ -101,7 +96,6 @@ class Land_Underground_EntranceBase : House
 			m_TempHotfixTimer.Stop();
 			m_TempHotfixTimer = null;
 		}
-		#endif
 		#endif
 	}
 	//---------------------
@@ -135,9 +129,7 @@ class Land_Underground_EntranceBase : House
 	override void EOnPostSimulate(IEntity other, float timeSlice)
 	{
 		#ifndef SERVER
-		#ifndef NO_GUI
 		OnUpdateClient(TEMP_HOTIX_TIMESLICE);
-		#endif
 		#endif
 	}
 	

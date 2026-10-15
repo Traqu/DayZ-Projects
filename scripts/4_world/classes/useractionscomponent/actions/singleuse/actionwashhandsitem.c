@@ -1,4 +1,3 @@
-[Obsolete("1.30: Not used and not registered in action constructor!")]
 class ActionWashHandsItem: ActionSingleUseBase
 {
 	protected const float WASH_HANDS_AMOUNT = 250; //ml
@@ -29,6 +28,7 @@ class ActionWashHandsItem: ActionSingleUseBase
 	
 	override bool ActionCondition( PlayerBase player, ActionTarget target, ItemBase item )
 	{
+		//Print(item.GetQuantity());
 		if ( player.GetItemOnSlot("Gloves") )
 			return false;
 		 

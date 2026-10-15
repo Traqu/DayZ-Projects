@@ -1,3 +1,7 @@
+typedef ItemBase Inventory_Base;
+typedef ItemBaseType Inventory_BaseType;
+typedef map<typename,ref ActionOverrideData>	TActionAnimOverrideMap;
+
 class DummyItem extends ItemBase
 {
 	override bool CanPutAsAttachment(EntityAI parent)
@@ -6,17 +10,10 @@ class DummyItem extends ItemBase
 	}
 };
 
-class ItemSoundEvent
+class ItemBaseType : InventoryItemType
 {
-    int m_SoundId;
-    int m_SlotId;
 
-    void ItemSoundEvent(int soundId, int slotId)
-    {
-        m_SoundId = soundId;
-        m_SlotId  = slotId;
-    }
-}
+};
 
 //const bool QUANTITY_DEBUG_REMOVE_ME = false;
 
@@ -24,7 +21,8 @@ class ItemBase extends InventoryItem
 {	
 	static ref map<typename, ref TInputActionMap> m_ItemTypeActionsMap = new map<typename, ref TInputActionMap>;
 	TInputActionMap m_InputActionMap;
-
+	static ref map<typename, ref TActionAnimOverrideMap> m_ItemActionOverrides = new map<typename, ref TActionAnimOverrideMap>; 
+	
 	bool	m_ActionsInitialize;
 	
 	static int	m_DebugActionsMask;
@@ -35,15 +33,24 @@ class ItemBase extends InventoryItem
 	// Quantity
 	
 	float 	m_VarQuantity;
-	float 	m_VarQuantityPrev;
-
+	float 	m_VarQuantityPrev;//for client to know quantity changed during synchronization
+	int		m_VarQuantityInit;
+	int		m_VarQuantityMin;
+	int		m_VarQuantityMax;
+	int		m_Count;
+	float	m_VarStackMax;
 	float	m_StoreLoadedQuantity = float.LOWEST;
 	// Wet
 	float 	m_VarWet;
 	float 	m_VarWetPrev;//for client to know wetness changed during synchronization
-
+	float 	m_VarWetInit;
+	float 	m_VarWetMin;
+	float 	m_VarWetMax;
 	// Cleanness
 	int		m_Cleanness;
+	int		m_CleannessInit;
+	int		m_CleannessMin;
+	int		m_CleannessMax;
 	// impact sounds
 	bool	m_WantPlayImpactSound;
 	bool	m_CanPlayImpactSound = true;
@@ -51,7 +58,12 @@ class ItemBase extends InventoryItem
 	int		m_ImpactSoundSurfaceHash;
 	//
 	float	m_HeatIsolation;
+	float 	m_ItemModelLength;
+	float	m_ItemAttachOffset; // Offset length for when the item is attached e.g. to weapon
+	int  	m_LiquidContainerMask;
 	int 	m_VarLiquidType;
+	int 	m_ItemBehaviour; // -1 = not specified; 0 = heavy item; 1= onehanded item; 2 = twohanded item
+	int 	m_QuickBarBonus;
 	bool	m_IsBeingPlaced;
 	bool	m_IsHologram;
 	bool	m_IsTakeable;
@@ -62,6 +74,9 @@ class ItemBase extends InventoryItem
 	bool 	can_this_be_combined; //Check if item can be combined
 	bool 	m_CanThisBeSplit; //Check if item can be split
 	bool	m_IsStoreLoad = false;
+	bool	m_CanShowQuantity;
+	bool	m_HasQuantityBar;
+	protected bool m_CanBeDigged;
 	protected bool m_IsResultOfSplit //! distinguish if item has been created as new or it came from splitting (server only flag)
 	
 	string	m_SoundAttType;
@@ -103,6 +118,9 @@ class ItemBase extends InventoryItem
 	float 								m_OverheatingDecayInterval = 1; // Timer's interval for decrementing overheat effect's lifespan
 	ref array <ref OverheatingParticle> m_OverheatingParticles;
 	
+	protected ref TStringArray m_HeadHidingSelections;
+	protected bool m_HideSelectionsBySlot;
+	
 	// Admin Log
 	PluginAdminLog			m_AdminLog;
 	
@@ -110,16 +128,21 @@ class ItemBase extends InventoryItem
 	ref Timer 				m_PhysDropTimer;
 
 	// Attachment Locking variables
+	ref array<int> 				m_CompatibleLocks;
+	protected int				m_LockType;
 	protected ref EffectSound 	m_LockingSound;
+	protected string 			m_LockSoundSet;
 	
 	// ItemSoundHandler variables
 	protected const int ITEM_SOUNDS_MAX = 63;					// optimize network synch  
-	protected int m_SoundSyncPlay;								// deprecated but left here for legacy modding compatibility
-	protected int m_SoundSyncStop;								// deprecated but left here for legacy modding compatibility
-	protected int m_SoundSyncSlotID = InventorySlots.INVALID;	// deprecated but left here for legacy modding compatibility
+	protected int m_SoundSyncPlay;								// id for sound to play
+	protected int m_SoundSyncStop;								// id for sound to stop
+	protected int m_SoundSyncSlotID = InventorySlots.INVALID;		// slot id for attach/detach sound based on slot
 	
-	protected ref array<ref ItemSoundEvent> m_SoundEventQueue; 	// server-side dynamic sound queue
 	private ref ItemSoundHandler m_ItemSoundHandler;
+	
+	//temperature
+	private float 				m_TemperaturePerQuantityWeight;
 	
 	// -------------------------------------------------------------------------
 	void ItemBase()
@@ -129,7 +152,7 @@ class ItemBase extends InventoryItem
 		m_ContinuousActions = new TIntArray;
 		m_InteractActions = new TIntArray;
 		
-		if (!g_Game.IsHeadlessOrDedicatedServer())
+		if (!g_Game.IsDedicatedServer())
 		{
 			if (HasMuzzle())
 			{
@@ -152,41 +175,83 @@ class ItemBase extends InventoryItem
 			m_AdminLog = PluginAdminLog.Cast(GetPlugin(PluginAdminLog));
 		}
 		
+		if (ConfigIsExisting("headSelectionsToHide"))
+		{
+			m_HeadHidingSelections = new TStringArray;
+			ConfigGetTextArray("headSelectionsToHide",m_HeadHidingSelections);
+		}
+		
+		m_HideSelectionsBySlot = false;
+		if (ConfigIsExisting("hideSelectionsByinventorySlot"))
+		{
+			m_HideSelectionsBySlot = ConfigGetBool("hideSelectionsByinventorySlot");
+		}
+		
+		m_QuickBarBonus = Math.Max(0, ConfigGetInt("quickBarBonus"));
+
 		m_IsResultOfSplit = false;
+		
+		SetActionAnimOverrides();
 	}
 	
 	override void InitItemVariables()
 	{
 		super.InitItemVariables();
 		
-		ItemBaseType itemBaseType = ItemBaseType.Cast(GetEntityType());
-
-		m_VarQuantity 	= itemBaseType.m_VarQuantityInit; //should be by the CE, this is just a precaution		
-		m_VarWet 		= itemBaseType.m_VarWetInit;
-		m_Cleanness 	= itemBaseType.m_CleannessInit;		
-
+		m_VarQuantityInit = ConfigGetInt("varQuantityInit");
+		m_VarQuantity = m_VarQuantityInit;//should be by the CE, this is just a precaution
+		m_VarQuantityMin = ConfigGetInt("varQuantityMin");
+		m_VarQuantityMax = ConfigGetInt("varQuantityMax");
+		m_VarStackMax = ConfigGetFloat("varStackMax");
+		m_Count = ConfigGetInt("count");
+		
+		m_CanShowQuantity = ConfigGetBool("quantityShow");
+		m_HasQuantityBar = ConfigGetBool("quantityBar");
+		
+		m_CleannessInit = ConfigGetInt("varCleannessInit");
+		m_Cleanness = m_CleannessInit;
+		m_CleannessMin = ConfigGetInt("varCleannessMin");
+		m_CleannessMax = ConfigGetInt("varCleannessMax");
+		
 		m_WantPlayImpactSound = false;
 		m_ImpactSpeed = 0.0;
-
-		// TODO: move to EntityType (ONLY IF POSSIBLE, GetQuantity() plays against it)
-		//{		
+		
+		m_VarWetInit = ConfigGetFloat("varWetInit");
+		m_VarWet = m_VarWetInit;
+		m_VarWetMin = ConfigGetFloat("varWetMin");
+		m_VarWetMax = ConfigGetFloat("varWetMax");
+		
+		m_LiquidContainerMask = ConfigGetInt("liquidContainerType");
 		if (IsLiquidContainer() && GetQuantity() != 0)
 			m_VarLiquidType = GetLiquidTypeInit();
-		//}
-
 		m_IsBeingPlaced = false;
 		m_IsHologram = false;
 		m_IsTakeable = true;
 		m_CanBeMovedOverride = false;
+		m_HeatIsolation = GetHeatIsolationInit();
+		m_ItemModelLength = GetItemModelLength();
+		m_ItemAttachOffset = GetItemAttachOffset();
+		m_CanBeDigged = ConfigGetBool("canBeDigged");
+		
+		m_CompatibleLocks = new array<int>();
+		ConfigGetIntArray("compatibleLocks", m_CompatibleLocks);
+		m_LockType = ConfigGetInt("lockType");
 		
 		//Define if item can be split and set ability to be combined accordingly
-		can_this_be_combined = ItemBaseType.Cast(GetEntityType()).m_CanBeSplit;
-		m_CanThisBeSplit = can_this_be_combined;
+		m_CanThisBeSplit = false;
+		can_this_be_combined = false;
+		if (ConfigIsExisting("canBeSplit"))
+		{
+			can_this_be_combined = ConfigGetBool("canBeSplit");
+			m_CanThisBeSplit = can_this_be_combined;
+		}
+		
+		m_ItemBehaviour = -1;
+		if (ConfigIsExisting("itemBehaviour"))
+			m_ItemBehaviour = ConfigGetInt("itemBehaviour");
 		
 		//RegisterNetSyncVariableInt("m_VariablesMask");
-		if (HasQuantity())
-			RegisterNetSyncVariableFloat("m_VarQuantity", itemBaseType.m_VarQuantityMin, itemBaseType.m_VarQuantityMax);
-
+		if (HasQuantity()) RegisterNetSyncVariableFloat("m_VarQuantity", GetQuantityMin(), m_VarQuantityMax);
 		RegisterNetSyncVariableFloat("m_VarWet", GetWetMin(), GetWetMax(), 2);
 		RegisterNetSyncVariableInt("m_VarLiquidType");
 		RegisterNetSyncVariableInt("m_Cleanness",0,1);
@@ -212,12 +277,18 @@ class ItemBase extends InventoryItem
 			RegisterNetSyncVariableInt("m_SoundSyncSlotID", int.MIN, int.MAX);
 		}
 		
-		m_SoundSyncSlotID = InventorySlots.INVALID;
+		m_LockSoundSet = ConfigGetString("lockSoundSet");
+		
+		m_TemperaturePerQuantityWeight = 1.0;;
+		if (ConfigIsExisting("temperaturePerQuantityWeight"))
+			m_TemperaturePerQuantityWeight = ConfigGetFloat("temperaturePerQuantityWeight");
+		
+		m_SoundSyncSlotID = -1;
 	}
 	
 	override int GetQuickBarBonus()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_QuickBarBonus;
+		return m_QuickBarBonus;
 	}
 
 	void InitializeActions()
@@ -251,7 +322,9 @@ class ItemBase extends InventoryItem
 		AddAction(ActionDropItem);
 		AddAction(ActionAttachWithSwitch);
 	}
-		
+	
+	void SetActionAnimOverrides();	// Override action animation for specific item
+	
 	void AddAction(typename actionName)
 	{
 		ActionBase action = ActionManagerBase.GetAction(actionName);
@@ -275,12 +348,10 @@ class ItemBase extends InventoryItem
 			action_array = new array<ActionBase_Basic>;
 			m_InputActionMap.Insert(ai, action_array);
 		}
-#ifdef ENABLE_LOGGING
 		if (LogManager.IsActionLogEnable())
 		{
 			Debug.ActionLog(action.ToString() + " -> " + ai, this.ToString() , "n/a", "Add action");
 		}
-#endif
 		
 		if (action_array.Find(action) != -1)
 		{
@@ -303,6 +374,26 @@ class ItemBase extends InventoryItem
 		{
 			action_array.RemoveItem(action);
 		}
+	}
+	
+	// Allows override of default action command per item, defined in the SetActionAnimOverrides() of the item's class
+	// Set -1 for params which should stay in default state
+	void OverrideActionAnimation(typename action, int commandUID, int stanceMask = -1, int commandUIDProne = -1)
+	{
+		ActionOverrideData overrideData = new ActionOverrideData();
+		overrideData.m_CommandUID = commandUID;
+		overrideData.m_CommandUIDProne = commandUIDProne;
+		overrideData.m_StanceMask = stanceMask;
+		
+		TActionAnimOverrideMap actionMap = m_ItemActionOverrides.Get(action);
+		if (!actionMap)	// create new map of action > overidables map
+		{
+			actionMap = new TActionAnimOverrideMap();
+			m_ItemActionOverrides.Insert(action, actionMap);
+		}
+		
+		actionMap.Insert(this.Type(), overrideData); // insert item -> overrides
+		
 	}
 	
 	void OnItemInHandsPlayerSwimStart(PlayerBase player);
@@ -824,12 +915,12 @@ class ItemBase extends InventoryItem
 	
 	bool IsLiquidContainer()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_LiquidContainerMask != 0;
+		return m_LiquidContainerMask != 0;
 	}
 	
 	int GetLiquidContainerMask()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_LiquidContainerMask;
+		return m_LiquidContainerMask;
 	}
 	
 	bool IsBloodContainer()
@@ -843,14 +934,9 @@ class ItemBase extends InventoryItem
 		return false;
 	}
 	
-	override bool IsDetectableByVicinityCone()
-	{
-		return true;
-	}
-	
 	//! explosive 
 	//! ------------
-	override bool IsExplosive()
+	bool IsExplosive()
 	{
 		return false;
 	}
@@ -874,17 +960,6 @@ class ItemBase extends InventoryItem
 	
 	//--- ACTION CONDITIONS
 	//direction
-	override bool IsFacingPlayerEx(DayZPlayer player, string selection)
-	{
-		return IsFacingPlayer(PlayerBase.Cast(player),selection);
-	}
-	
-	//! useful for construction and inventory related systems
-	override bool IsPlayerInsideEx(DayZPlayer player, string selection)
-	{
-		return IsPlayerInside(PlayerBase.Cast(player),selection);;
-	}
-	
 	bool IsFacingPlayer(PlayerBase player, string selection)
 	{
 		return true;
@@ -924,7 +999,7 @@ class ItemBase extends InventoryItem
 	
 	bool CanBeDigged()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_CanBeDigged;
+		return m_CanBeDigged;
 	}
 	
 	int GetOnDigWormsAmount()
@@ -1121,15 +1196,12 @@ class ItemBase extends InventoryItem
 		if (m_CanPlayImpactSound)
 		{
 			int liquidType = -1;
-			ItemBaseType itemBaseType = ItemBaseType.Cast(GetEntityType());
-			float impactSpeed = ProcessImpactSoundEx(other, extra, itemBaseType.m_ConfigWeight, m_ImpactSoundSurfaceHash, liquidType);
+			float impactSpeed = ProcessImpactSoundEx(other, extra, m_ConfigWeight, m_ImpactSoundSurfaceHash, liquidType);
 			if (impactSpeed > 0.0)
 			{
 				m_ImpactSpeed  = impactSpeed;
 				#ifndef SERVER
-				#ifndef NO_GUI
-				PlayImpactSound(itemBaseType.m_ConfigWeight, m_ImpactSpeed, m_ImpactSoundSurfaceHash);
-				#endif
+				PlayImpactSound(m_ConfigWeight, m_ImpactSpeed, m_ImpactSoundSurfaceHash);
 				#else
 				m_WantPlayImpactSound = true;
 				SetSynchDirty();
@@ -1330,9 +1402,9 @@ class ItemBase extends InventoryItem
 		super.OnWasAttached(parent, slot_id);
 		
 		if (HasQuantity())
-			UpdateNetSyncVariableFloat("m_VarQuantity", GetQuantityMin(), GetQuantityMax());
+			UpdateNetSyncVariableFloat("m_VarQuantity", GetQuantityMin(), m_VarQuantityMax);
 		
-		if ((g_Game.IsServer() || !g_Game.IsMultiplayer()) && CanPlayAttachSound()) // single player or server side multiplayer
+		if (g_Game.IsServer() || !g_Game.IsMultiplayer()) // single player or server side multiplayer
 			StartItemSoundServer(SoundConstants.ITEM_ATTACH, slot_id);
 	}
 	
@@ -1341,9 +1413,9 @@ class ItemBase extends InventoryItem
 		super.OnWasDetached(parent, slot_id);
 		
 		if (HasQuantity())
-			UpdateNetSyncVariableFloat("m_VarQuantity", GetQuantityMin(), GetQuantityMax());
+			UpdateNetSyncVariableFloat("m_VarQuantity", GetQuantityMin(), m_VarQuantityMax);
 		
-		if ((g_Game.IsServer() || !g_Game.IsMultiplayer()) && CanPlayDetachSound()) // single player or server side multiplayer
+		if (g_Game.IsServer() || !g_Game.IsMultiplayer()) // single player or server side multiplayer
 			StartItemSoundServer(SoundConstants.ITEM_DETACH, slot_id);
 	}
 	
@@ -1758,7 +1830,6 @@ class ItemBase extends InventoryItem
 				ItemBase thiz = this; // @NOTE: workaround for correct serialization
 				ctx.Write(thiz);
 				dst.WriteToContext(ctx);
-				ctx.Write(false);
 				ctx.Send();
 			}
 		}
@@ -1815,10 +1886,7 @@ class ItemBase extends InventoryItem
 
 			if (ShouldSplitQuantity(split_quantity_new))
 			{
-				int flag = ECE_IN_INVENTORY;
-				if (dst.GetType() == InventoryLocationType.GROUND)
-					flag = ECE_PLACE_ON_SURFACE;
-				new_item = ItemBase.Cast(GameInventory.LocationCreateEntity(dst, this.GetType(), flag, RF_DEFAULT));
+				new_item = ItemBase.Cast(GameInventory.LocationCreateEntity(dst, this.GetType(), ECE_IN_INVENTORY, RF_DEFAULT));
 				
 				if (new_item)
 				{
@@ -1922,11 +1990,8 @@ class ItemBase extends InventoryItem
 		if (!ShouldSplitQuantity(split_quantity_new))
 			return;
 
-		int flag = ECE_IN_INVENTORY;
-		if (dst.GetType() == InventoryLocationType.GROUND)
-			flag = ECE_PLACE_ON_SURFACE;
-		ItemBase new_item = ItemBase.Cast(GameInventory.LocationCreateEntity(dst, GetType(), flag, RF_DEFAULT));
-		
+		ItemBase new_item = ItemBase.Cast(GameInventory.LocationCreateEntity(dst, GetType(), ECE_IN_INVENTORY, RF_DEFAULT));
+
 		if (new_item)
 		{
 			if (new_item.GetQuantityMax() < split_quantity_new)
@@ -1975,7 +2040,7 @@ class ItemBase extends InventoryItem
 				AddQuantity(-1, false, true);
 				new_item.SetQuantity(1, false, true);
 			}
-			else
+			else if (split_quantity_new > 1)
 			{
 				AddQuantity(-split_quantity_new, false, true);
 				new_item.SetQuantity(split_quantity_new, false, true);
@@ -2084,7 +2149,7 @@ class ItemBase extends InventoryItem
 							PlayerBase player = PlayerBase.Cast(g_Game.GetPlayer());
 							if (!player.GetInventory().FindFreeLocationFor(this, FindInventoryLocationType.CARGO, dst) || !playerOwner)
 							{
-								SetInventoryLocationToVicinityOrCurrent(player, dst); //dropping on the ground next to the spliting player
+								SetInventoryLocationToVicinityOrCurrent(root, dst);
 							}
 							else
 							{
@@ -2761,9 +2826,7 @@ class ItemBase extends InventoryItem
 		switch (rpc_type)
 		{
 			#ifndef SERVER
-			#ifndef NO_GUI
 			case ERPCs.RPC_SOUND_LOCK_ATTACH:
-			{
 				Param2<bool, string> p = new Param2<bool, string>(false, "");
 					
 				if (!ctx.Read(p))
@@ -2791,39 +2854,7 @@ class ItemBase extends InventoryItem
 					SEffectManager.DestroyEffect(m_LockingSound);
 				}
 			
-				break;
-			}
-			case ERPCs.RPC_ITEM_SOUND_PLAY:
-			{
-				int count;
-				if (!ctx.Read(count))
-					return;
-				
-				for (int i = 0; i < count; i++)
-				{
-					int soundIdPlay, slotIdPlay;
-					if (!ctx.Read(soundIdPlay))
-						return;
-					
-					if (!ctx.Read(slotIdPlay))
-						return;
-					
-					if (m_ItemSoundHandler && soundIdPlay != 0)
-						m_ItemSoundHandler.PlayItemSoundClient(soundIdPlay, slotIdPlay);
-				}
-				break;
-			}
-			case ERPCs.RPC_ITEM_SOUND_STOP:
-			{
-				int soundIdStop;
-				if (!ctx.Read(soundIdStop))
-					return;
-				
-				if (m_ItemSoundHandler && soundIdStop != 0)
-					m_ItemSoundHandler.StopItemSoundClient(soundIdStop);
-				break;
-			}
-			#endif
+			break;
 			#endif
 		
 		}
@@ -3267,10 +3298,10 @@ class ItemBase extends InventoryItem
 			}
 			#endif
 		}
-
+				
 		if (!dBodyIsDynamic(this) && m_WantPlayImpactSound)
 		{
-			PlayImpactSound(ItemBaseType.Cast(GetEntityType()).m_ConfigWeight, m_ImpactSpeed, m_ImpactSoundSurfaceHash);
+			PlayImpactSound(m_ConfigWeight, m_ImpactSpeed, m_ImpactSoundSurfaceHash);
 			m_WantPlayImpactSound = false;
 		}
 		
@@ -3284,29 +3315,23 @@ class ItemBase extends InventoryItem
 			OnWetChanged(m_VarWet,m_VarWetPrev);
 			m_VarWetPrev = m_VarWet;
 		}
-			
-		super.OnVariablesSynchronized();
-	}
-	
-	//! Method to call for legacy support of remote item sound playback.
-	//! Override and call this method in OnVariablesSynchronized is needed to use old remote item sound playback
-	protected void LegacyItemSoundSync()
-	{
+		
 		if (m_SoundSyncPlay != 0)
 		{
 			if (m_ItemSoundHandler)
 				m_ItemSoundHandler.PlayItemSoundClient(m_SoundSyncPlay, m_SoundSyncSlotID);
 			
 			m_SoundSyncPlay = 0;
-			m_SoundSyncSlotID = InventorySlots.INVALID;
+			m_SoundSyncSlotID = -1;
 		}
-		
 		if (m_SoundSyncStop != 0)
 		{
 			if (m_ItemSoundHandler)
 				m_ItemSoundHandler.StopItemSoundClient(m_SoundSyncStop);
 			m_SoundSyncStop = 0;
 		}
+			
+		super.OnVariablesSynchronized();
 	}
 
 	//-------------------------	Quantity
@@ -3351,12 +3376,11 @@ class ItemBase extends InventoryItem
 		float delta = m_VarQuantity;
 		m_VarQuantity = Math.Clamp(value, min, max);
 		
-		EntityAI parent = GetHierarchyRoot();
-		InventoryLocation iLoc = new InventoryLocation();
-		GameInventory gameInventory = GetInventory();
-		if (gameInventory)
+		if (g_Game.IsServer() || !g_Game.IsMultiplayer()) // single player or server side multiplayer
 		{
-			gameInventory.GetCurrentInventoryLocation(iLoc);
+			EntityAI parent = GetHierarchyRoot();
+			InventoryLocation iLoc = new InventoryLocation();
+			GetInventory().GetCurrentInventoryLocation(iLoc);
 			if (iLoc && iLoc.IsValid() && delta != m_VarQuantity)
 			{
 				int iLocSlot = iLoc.GetSlot();
@@ -3448,33 +3472,31 @@ class ItemBase extends InventoryItem
 	
 	override int GetTargetQuantityMax(int attSlotID = -1)
 	{
-		float quantityMax = 0;
-		
-		ItemBaseType itemBaseType = ItemBaseType.Cast(GetEntityType());
+		float quantity_max = 0;
 		
 		if (IsSplitable()) //only stackable/splitable items can check for stack size
 		{
 			if (attSlotID != -1)
-				quantityMax = InventorySlots.GetStackMaxForSlotId(attSlotID);
+				quantity_max = InventorySlots.GetStackMaxForSlotId(attSlotID);
 			
-			if (quantityMax <= 0)
-				quantityMax = itemBaseType.m_VarStackMax;
+			if (quantity_max <= 0)
+				quantity_max = m_VarStackMax;
 		}
 		
-		if (quantityMax <= 0)
-			quantityMax = itemBaseType.m_VarQuantityMax;
+		if (quantity_max <= 0)
+			quantity_max = m_VarQuantityMax;
 
-		return quantityMax;
+		return quantity_max;
 	}
 	//----------------------------------------------------------------
 	override int GetQuantityMin()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_VarQuantityMin;
+		return m_VarQuantityMin;
 	}
 	//----------------------------------------------------------------
 	int GetQuantityInit()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_VarQuantityInit;
+		return m_VarQuantityInit;
 	}
 	
 	//----------------------------------------------------------------
@@ -3578,7 +3600,7 @@ class ItemBase extends InventoryItem
 			wetness += GetWet();
 		if (IsSplitable()) //quantity determines size of the stack
 		{
-			weight = wetness * ItemBaseType.Cast(GetEntityType()).m_ConfigWeight;
+			weight = wetness * m_ConfigWeight;
 		}
 		else if (IsLiquidContainer()) //is a liquid container, default liquid weight is set to 1. May revisit later?
 		{
@@ -3638,34 +3660,27 @@ class ItemBase extends InventoryItem
 	// Converts energy (from Energy Manager) to quantity, if enabled.
 	void ConvertEnergyToQuantity()
 	{
-		if (!HasQuantity())
-			return;
-		
-		ComponentEnergyManager compEM = GetCompEM();
-		if ((g_Game.IsServer() || !g_Game.IsMultiplayer()) && compEM && compEM.HasConversionOfEnergyToQuantity())
+		if (g_Game.IsServer() && HasEnergyManager() && GetCompEM().HasConversionOfEnergyToQuantity())
 		{
-			float energy0To1 = compEM.GetEnergy0To1();
-			SetQuantityNormalized(energy0To1);
+			if (HasQuantity())
+			{
+				float energy_0to1 = GetCompEM().GetEnergy0To1();
+				SetQuantityNormalized(energy_0to1);
+			}
 		}
 	}
 
 	//----------------------------------------------------------------
+	float GetHeatIsolationInit()
+	{
+		return ConfigGetFloat("heatIsolation");
+	}
+
 	float GetHeatIsolation()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_HeatIsolation;
+		return m_HeatIsolation;
 	}
-	
-	float GetDryingIncrement(EEnvironmentDryingCategories pCategory)
-	{
-		return ItemBaseType.Cast(GetEntityType()).m_DryingIncrements[pCategory];
-	}
-	
-	float GetSoakingIncrement(EEnvironmentSoakingCategories pCategory)
-	{
-		return ItemBaseType.Cast(GetEntityType()).m_SoakingIncrements[pCategory];
-	}	
 
-	[Obsolete("1.30: replaced by GetDryingIncrement taking enum/int arguments")]
 	float GetDryingIncrement(string pIncrementName)
 	{
 		string paramPath = string.Format("CfgVehicles %1 EnvironmentWetnessIncrements Drying %2", GetType(), pIncrementName);
@@ -3674,8 +3689,7 @@ class ItemBase extends InventoryItem
 		
 		return 0.0;
 	}
-
-	[Obsolete("1.30: replaced by GetSoakingIncrement taking enum/int arguments")]
+	
 	float GetSoakingIncrement(string pIncrementName)
 	{
 		string paramPath = string.Format("CfgVehicles %1 EnvironmentWetnessIncrements Soaking %2", GetType(), pIncrementName);
@@ -3711,7 +3725,7 @@ class ItemBase extends InventoryItem
 	//----------------------------------------------------------------
 	override void SetWetMax()
 	{
-		SetWet(ItemBaseType.Cast(GetEntityType()).m_VarWetMax);
+		SetWet(m_VarWetMax);
 	}
 	//----------------------------------------------------------------
 	override float GetWet()
@@ -3721,17 +3735,17 @@ class ItemBase extends InventoryItem
 	//----------------------------------------------------------------
 	override float GetWetMax()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_VarWetMax;
+		return m_VarWetMax;
 	}
 	//----------------------------------------------------------------
 	override float GetWetMin()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_VarWetMin;
+		return m_VarWetMin;
 	}
 	//----------------------------------------------------------------
 	override float GetWetInit()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_VarWetInit;
+		return m_VarWetInit;
 	}
 	//----------------------------------------------------------------
 	override void OnWetChanged(float newVal, float oldVal)
@@ -3780,12 +3794,20 @@ class ItemBase extends InventoryItem
 	
 	float GetItemModelLength()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_ItemModelLength;
+		if (ConfigIsExisting("itemModelLength"))
+		{
+			return ConfigGetFloat("itemModelLength");
+		}
+		return 0;
 	}
 	
 	float GetItemAttachOffset()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_ItemAttachOffset;
+		if (ConfigIsExisting("itemAttachOffset"))
+		{
+			return ConfigGetFloat("itemAttachOffset");
+		}
+		return 0;
 	}
 	
 	override void SetCleanness(int value, bool allow_client = false)
@@ -3795,8 +3817,7 @@ class ItemBase extends InventoryItem
 		
 		int previousValue = m_Cleanness;
 		
-		ItemBaseType itemBaseType = ItemBaseType.Cast(GetEntityType());
-		m_Cleanness = Math.Clamp(value, itemBaseType.m_CleannessMin, itemBaseType.m_CleannessMax);
+		m_Cleanness = Math.Clamp(value, m_CleannessMin, m_CleannessMax);
 		
 		if (previousValue != m_Cleanness)
 			SetVariableMask(VARIABLE_CLEANNESS);
@@ -3817,12 +3838,12 @@ class ItemBase extends InventoryItem
 	// Getters relevant to generic ActionLockAttachment
 	int GetLockType()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_LockType;
+		return m_LockType;
 	}
 	
 	string GetLockSoundSet()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_LockSoundSet;
+		return m_LockSoundSet;
 	}
 
 	//----------------------------------------------------------------
@@ -3877,7 +3898,7 @@ class ItemBase extends InventoryItem
 	
 	int GetLiquidTypeInit()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_VarLiquidTypeInit;
+		return ConfigGetInt("varLiquidTypeInit");
 	}
 	
 	override int GetLiquidType()
@@ -4073,7 +4094,18 @@ class ItemBase extends InventoryItem
 	float GetProtectionLevel(int type, bool consider_filter = false, int system = 0)
 	{
 		if (IsDamageDestroyed() || (HasQuantity() && GetQuantity() <= 0))
-			return 0.0;
+		{
+			return 0;
+		}
+		
+		if (GetInventory().GetAttachmentSlotsCount() != 0)//is it an item with attachable filter ?
+		{
+			ItemBase filter = ItemBase.Cast(FindAttachmentBySlotName("GasMaskFilter"));
+			if (filter)
+				return filter.GetProtectionLevel(type, false, system);//it's a valid filter, return the protection
+			else
+				return 0;//otherwise return 0 when no filter attached
+		}
 
 		string subclassPath, entryName;
 
@@ -4084,13 +4116,7 @@ class ItemBase extends InventoryItem
 				break;
 			case DEF_CHEMICAL:
 				entryName = "chemical";
-				break;
-			case DEF_DUST_PARTICLE_BREATH:
-				entryName = "dust_particle_breath";
-				break;
-			case DEF_DUST_PARTICLE_EYES:
-				entryName = "dust_particle_eyes";
-				break;
+				break;	
 			default:
 				entryName = "biological";
 				break;
@@ -4323,24 +4349,30 @@ class ItemBase extends InventoryItem
 	//Item Behaviour - unified approach
 	override bool IsHeavyBehaviour()
 	{
-		if (ItemBaseType.Cast(GetEntityType()).m_ItemBehaviour == 0)
+		if (m_ItemBehaviour == 0)
+		{	
 			return true;
+		}
 		
 		return false;
 	}
 	
 	override bool IsOneHandedBehaviour()
 	{
-		if (ItemBaseType.Cast(GetEntityType()).m_ItemBehaviour == 1)
+		if (m_ItemBehaviour == 1)
+		{
 			return true;	
+		}
 		
 		return false;
 	}
 	
 	override bool IsTwoHandedBehaviour()
 	{
-		if (ItemBaseType.Cast(GetEntityType()).m_ItemBehaviour == 2)
+		if (m_ItemBehaviour == 2)
+		{
 			return true;
+		}
 			
 		return false;
 	}
@@ -4435,17 +4467,16 @@ class ItemBase extends InventoryItem
 	// Start sound using ItemSoundHandler
 	void StartItemSoundServer(int id, int slotId)
 	{
-		if (!GetGame().IsServer() || id <= 0)
-			return;
-		
-		if (!m_SoundEventQueue)
-			m_SoundEventQueue = new array<ref ItemSoundEvent>;
-		
-		m_SoundEventQueue.Insert(new ItemSoundEvent(id, slotId));
-		
-		// flush once per frame instead of per-insert (batches multiple sounds)
-		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(FlushItemSoundQueue);
-		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(FlushItemSoundQueue);
+		if (g_Game.IsServer() || !g_Game.IsMultiplayer()) // single player or server side multiplayer
+		{
+			m_SoundSyncSlotID = slotId;
+			m_SoundSyncPlay = id;
+						
+			SetSynchDirty();
+			
+			g_Game.GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(ClearStartItemSoundServer);	// in case one is queued already
+			g_Game.GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(ClearStartItemSoundServer, 100);
+		}
 	}
 	
 	void StartItemSoundServer(int id)
@@ -4453,34 +4484,8 @@ class ItemBase extends InventoryItem
 		StartItemSoundServer(id, InventorySlots.INVALID);
 	}
 	
-	void StartItemSoundClient(int id, int slotId = InventorySlots.INVALID)
-	{
-		if (g_Game.IsClient() && m_ItemSoundHandler)
-		{
-			m_ItemSoundHandler.PlayItemSoundClient(id, slotId);
-		}
-	}
-	
-	protected void FlushItemSoundQueue()
-	{
-		if (!m_SoundEventQueue || m_SoundEventQueue.Count() == 0)
-			return;
-		
-		ScriptRPC rpc = new ScriptRPC();
-		rpc.Write(m_SoundEventQueue.Count());
-		foreach (ItemSoundEvent ev : m_SoundEventQueue)
-		{
-			rpc.Write(ev.m_SoundId);
-			rpc.Write(ev.m_SlotId);
-		}
-		rpc.Send(this, ERPCs.RPC_ITEM_SOUND_PLAY, true);
-		
-		m_SoundEventQueue.Clear();
-	}
-	
-	//! Legacy method to stop sound using ItemSoundHandler. Kept here for modding support
-	//! Only working if you override OnVariablesSynchronized and call LegacyItemSoundSync to use old remote item sound playback
-	void LegacyStopItemSoundServer(int id)
+	// Stop sound using ItemSoundHandler
+	void StopItemSoundServer(int id)
 	{
 		if (!g_Game.IsServer())
 			return;
@@ -4492,14 +4497,10 @@ class ItemBase extends InventoryItem
 		g_Game.GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(ClearStopItemSoundServer, 100);
 	}
 	
-	void StopItemSoundServer(int id)
+	protected void ClearStartItemSoundServer()
 	{
-		if (!g_Game.IsServer())
-			return;
-		
-		ScriptRPC rpc = new ScriptRPC();
-		rpc.Write(id);
-		rpc.Send(this, ERPCs.RPC_ITEM_SOUND_STOP, true);
+		m_SoundSyncPlay = 0;
+		m_SoundSyncSlotID = InventorySlots.INVALID;
 	}
 	
 	protected void ClearStopItemSoundServer()
@@ -4513,16 +4514,15 @@ class ItemBase extends InventoryItem
 	{
 		return 1.0;
 	};
-
 	//returns applicable selection
 	array<string> GetHeadHidingSelection()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_HeadHidingSelections;
+		return m_HeadHidingSelections;
 	}
 	
 	bool HidesSelectionBySlot()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_HideSelectionsBySlot;
+		return m_HideSelectionsBySlot;
 	}
 	
 	WrittenNoteData GetWrittenNoteData() {};
@@ -4567,24 +4567,23 @@ class ItemBase extends InventoryItem
 	{
 		if (!hasRootAsPlayer)
 		{
-			ItemBaseType itemBaseType = ItemBaseType.Cast(GetEntityType());
 			if (refParentIB)
 			{
 				// parent is wet
-				if ((refParentIB.GetWet() >= GameConstants.STATE_SOAKING_WET) && (m_VarWet < ItemBaseType.Cast(GetEntityType()).m_VarWetMax))
+				if ((refParentIB.GetWet() >= GameConstants.STATE_SOAKING_WET) && (m_VarWet < m_VarWetMax))
 					AddWet(delta * GameConstants.WETNESS_RATE_WETTING_INSIDE);
 				// parent has liquid inside
-				else if ((refParentIB.GetLiquidType() != 0) && (refParentIB.GetQuantity() > 0) && (m_VarWet < ItemBaseType.Cast(GetEntityType()).m_VarWetMax))
+				else if ((refParentIB.GetLiquidType() != 0) && (refParentIB.GetQuantity() > 0) && (m_VarWet < m_VarWetMax))
 					AddWet(delta * GameConstants.WETNESS_RATE_WETTING_LIQUID);
 				// drying
-				else if (m_VarWet > itemBaseType.m_VarWetMin)						
-					AddWet(-1 * delta * GetDryingIncrement(EEnvironmentDryingCategories.GROUND) * 2);
+				else if (m_VarWet > m_VarWetMin)						
+					AddWet(-1 * delta * GetDryingIncrement("ground") * 2);
 			}
 			else
 			{
 				// drying on ground or inside non-itembase (car, ...)
-				if (m_VarWet > itemBaseType.m_VarWetMin)
-					AddWet(-1 * delta * GetDryingIncrement(EEnvironmentDryingCategories.GROUND));
+				if (m_VarWet > m_VarWetMin)
+					AddWet(-1 * delta * GetDryingIncrement("ground"));
 			}
 		}
 	}
@@ -4656,7 +4655,7 @@ class ItemBase extends InventoryItem
 		return !GetIsFrozen() && IsOpen();
 	}
 	
-	override void ProcessVariables(float elapsedTime)
+	override void ProcessVariables()
 	{
 		bool hasParent = false, hasRootAsPlayer = false;
 		ItemBase refParentIB;
@@ -4675,13 +4674,13 @@ class ItemBase extends InventoryItem
 				HierarchyCheck(hasParent, hasRootAsPlayer, refParentIB);
 			
 				if (processWetness)
-					ProcessItemWetness(elapsedTime, hasParent, hasRootAsPlayer, refParentIB);					
+					ProcessItemWetness(m_ElapsedSinceLastUpdate, hasParent, hasRootAsPlayer, refParentIB);					
 				
 				if (processTemperature)
-					ProcessItemTemperature(elapsedTime, hasParent, hasRootAsPlayer, refParentIB);
+					ProcessItemTemperature(m_ElapsedSinceLastUpdate, hasParent, hasRootAsPlayer, refParentIB);
 			
 				if (processDecay)
-					ProcessDecay(elapsedTime, hasRootAsPlayer);
+					ProcessDecay(m_ElapsedSinceLastUpdate, hasRootAsPlayer);
 			}
 		}
 	}
@@ -4689,7 +4688,7 @@ class ItemBase extends InventoryItem
 	//! Used in heat comfort calculations only!
 	float GetTemperaturePerQuantityWeight()
 	{
-		return ItemBaseType.Cast(GetEntityType()).m_TemperaturePerQuantityWeight * GameConstants.ITEM_TEMPERATURE_QUANTITY_WEIGHT_MULTIPLIER;
+		return m_TemperaturePerQuantityWeight * GameConstants.ITEM_TEMPERATURE_QUANTITY_WEIGHT_MULTIPLIER;
 	}
 	
 	override float GetTemperatureFreezeThreshold()
@@ -4845,21 +4844,6 @@ class ItemBase extends InventoryItem
 		}
 	}
 	
-	bool IsExternalLockType()
-	{
-		return false;
-	}
-	
-	bool CanPlayAttachSound()
-	{
-		return true;
-	}
-	
-	bool CanPlayDetachSound()
-	{
-		return true;
-	}
-	
 	///////////////////
 	//DEPRECATED BELOW
 	//////////////////
@@ -4899,7 +4883,7 @@ class ItemBase extends InventoryItem
 	//! Plays sound on item attach. Be advised, the config structure may slightly change in 1.11 update to allow for more complex use.
 	void PlayAttachSound(string slot_type)
 	{
-		if (!g_Game.IsHeadlessOrDedicatedServer())
+		if (!g_Game.IsDedicatedServer())
 		{
 			if (ConfigIsExisting("attachSoundSet"))
 			{
@@ -4934,19 +4918,6 @@ class ItemBase extends InventoryItem
 	}
 	
 	void PlayDetachSound(string slot_type) {}
-	
-	[Obsolete("1.30: No replacement")]
-	float GetHeatIsolationInit()
-	{
-		return ItemBaseType.Cast(GetEntityType()).m_HeatIsolation;
-	}
-	
-	[Obsolete("1.30: No replacement")]
-	protected void ClearStartItemSoundServer()
-	{
-		m_SoundSyncPlay = 0;
-		m_SoundSyncSlotID = InventorySlots.INVALID;
-	}
 }
 
 EntityAI SpawnItemOnLocation(string object_name, notnull InventoryLocation loc, bool full_quantity)

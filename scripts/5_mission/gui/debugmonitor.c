@@ -8,9 +8,6 @@ class DebugMonitor
 	private TextWidget m_VersionValue;
 	private TextWidget m_HealthValue;
 	private TextWidget m_BloodValue;
-	private TextWidget m_EnvironmentTemperatureValue;
-	private TextWidget m_HeatComfortValue;
-	private TextWidget m_ThermalBiasValue;
 	private TextWidget m_DmgSourceValue;
 	private TextWidget m_MapTileValue;
 	private TextWidget m_PositionValue;
@@ -40,11 +37,6 @@ class DebugMonitor
 		m_FPSMinValue = TextWidget.Cast(m_WidgetRoot.FindAnyWidget("FPSMinValue"));
 		m_FPSMaxValue = TextWidget.Cast(m_WidgetRoot.FindAnyWidget("FPSMaxValue"));
 		m_FPSAvgValue = TextWidget.Cast(m_WidgetRoot.FindAnyWidget("FPSAvgValue"));
-		
-		m_EnvironmentTemperatureValue = TextWidget.Cast(m_WidgetRoot.FindAnyWidget("TemperatureValue"));
-		
-		m_HeatComfortValue	= TextWidget.Cast(m_WidgetRoot.FindAnyWidget("HeatComfortValue"));
-		m_ThermalBiasValue	= TextWidget.Cast(m_WidgetRoot.FindAnyWidget("ThermalBiasValue"));
 		
 		m_FPSTextDefaultColor = m_FPSValue.GetColor();
 	}
@@ -141,21 +133,6 @@ class DebugMonitor
 			m_CopyPositionInfo.SetText(" (P to clipboard)");
 		else
 			m_CopyPositionInfo.SetText("");
-	}
-	
-	void SetEnvironmentTemperature(float value)
-	{
-		m_EnvironmentTemperatureValue.SetText(value.ToString());
-	}
-	
-	void SetHeatComfort(float value)
-	{
-		m_HeatComfortValue.SetText(value.ToString());
-	}
-	
-	void SetThermalBias(float value)
-	{
-		m_ThermalBiasValue.SetText(value.ToString());
 	}
 		
 	void Show()

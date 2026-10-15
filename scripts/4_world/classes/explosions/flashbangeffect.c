@@ -99,17 +99,18 @@ class FlashbangEffect
 			return;
 		}
 		
-		vector playerHeadPosition = MiscGameplayFunctions.GetPlayerHeadPosition(m_Player);
+		vector pos;
+		MiscGameplayFunctions.GetHeadBonePos(m_Player, pos);
 		
 		if (!m_FlashbangEffectSound)
 		{
-			m_FlashbangEffectSound = SEffectManager.CreateSound("Tinnitus_SoundSet", playerHeadPosition);
+			m_FlashbangEffectSound = SEffectManager.CreateSound("Tinnitus_SoundSet", pos);
 		}
 		
 		if (!m_FlashbangEffectSound.IsPlaying())
 		{
 			m_FlashbangEffectSound.SetParent(m_Player);
-			m_FlashbangEffectSound.SetAttachedLocalPos(m_Player.WorldToModel(playerHeadPosition));
+			m_FlashbangEffectSound.SetAttachedLocalPos(m_Player.WorldToModel(pos));
 			m_FlashbangEffectSound.SetSoundWaveKind(WaveKind.WAVEEFFECTEX);
 			m_FlashbangEffectSound.SetSoundFadeIn(4 * Math.Clamp(m_ProgressMultiplier,0.5,1.0)); //TODO
 			m_SoundStopTime = 2 * Math.Clamp(m_ProgressMultiplier,0.5,1.0);

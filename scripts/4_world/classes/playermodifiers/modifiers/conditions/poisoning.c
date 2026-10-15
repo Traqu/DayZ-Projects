@@ -39,6 +39,7 @@ class PoisoningMdfr : ModifierBase
 
 	override void OnActivate(PlayerBase player)
 	{
+		player.IncreaseDiseaseCount();
 	}
 	
 	override void OnReconnect(PlayerBase player)
@@ -52,8 +53,6 @@ class PoisoningMdfr : ModifierBase
 		player.GetStaminaHandler().DeactivateDepletionModifier(EStaminaMultiplierTypes.VOMIT_EXHAUSTION);
 		m_Exhaustion = false;
 		m_ExhaustionTimer = 0;
-		
-		DoOnce.Clear(ClassName());
 		player.DecreaseDiseaseCount();
 	}
 
@@ -71,12 +70,9 @@ class PoisoningMdfr : ModifierBase
 		
 		if (Math.RandomFloat01() < chance)
 		{
-
 			SymptomBase symptom = player.GetSymptomManager().QueueUpPrimarySymptom(SymptomIDs.SYMPTOM_VOMIT);
 			if (symptom)
 			{
-				DoOnce.Run(ClassName(), player, "IncreaseDiseaseCount");
-
 				CachedObjectsParams.PARAM1_FLOAT.param1 = 30.0 * invertedAgentCountValue;
 				symptom.SetParam(CachedObjectsParams.PARAM1_FLOAT);
 				symptom.SetDuration(Math.Max(3.0, 10 * invertedAgentCountValue));

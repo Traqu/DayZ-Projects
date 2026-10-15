@@ -35,6 +35,3 @@ class HandDrillKit extends ItemBase
 	}
 	*/	
 }
-
-class HandDrillKitBirch : HandDrillKit {}
-class HandDrillKitPalm : HandDrillKit {}

@@ -1,4 +1,3 @@
-#ifdef ROBOCLIENT
 /**@class	BotGuardBase
  * @brief	represents guard on a transition from state to state
  **/
@@ -56,12 +55,12 @@ class BotGuardOr extends BotGuardBase
 	}
 };
 
-class BotGuardHasItemInHands extends BotGuardBase
+class BotGuardHasItemInHands extends HandGuardBase
 {
 	protected Man m_Player;
 	void BotGuardHasItemInHands (Man p = NULL) { m_Player = p; }
 
-	override bool GuardCondition(BotEventBase e)
+	override bool GuardCondition (HandEventBase e)
 	{
 		if (m_Player.GetEntityInHands())
 		{
@@ -92,4 +91,3 @@ class BotGuardDebugEventMatches extends BotGuardBase
 		return other.m_Id == m_Event.m_Id;
 	}
 };
-#endif

@@ -23,6 +23,7 @@ class BlindnessSymptom extends SymptomBase
 	override void OnUpdateClient(PlayerBase player, float deltatime)
 	{
 
+		
 	}
 	
 	//!gets called once on an Symptom which is being activated

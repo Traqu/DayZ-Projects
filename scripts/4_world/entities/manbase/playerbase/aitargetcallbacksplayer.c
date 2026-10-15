@@ -13,9 +13,10 @@ class AITargetCallbacksPlayer : AITargetCallbacks
 	
 	override vector GetHeadPositionWS() 
 	{ 
-		vector playerHeadPos = MiscGameplayFunctions.GetPlayerHeadPosition(m_Player);
+		vector position;
+		MiscGameplayFunctions.GetHeadBonePos(m_Player, position);
 
-		return playerHeadPos;
+		return position;
 	}
 	
 	override vector GetVisionPointPositionWS(EntityAI pApplicant) 

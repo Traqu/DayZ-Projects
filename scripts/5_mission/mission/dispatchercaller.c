@@ -12,10 +12,6 @@ class DispatcherCaller extends Dispatcher
 	
 	private void ScriptConsoleAddPrint(Param1<string> p)
 	{
-#ifdef NO_GUI
-		return;
-#endif
-		
 		UIScriptedMenu ui_menu = g_Game.GetUIManager().GetMenu();
 		if ( ui_menu && ui_menu.GetID() == MENU_SCRIPTCONSOLE )
 		{

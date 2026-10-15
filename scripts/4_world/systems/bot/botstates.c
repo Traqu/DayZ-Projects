@@ -1,4 +1,3 @@
-#ifdef ROBOCLIENT
 /**@class	BotStateBase
  * @brief	represent weapon state base
  *
@@ -133,4 +132,3 @@ class BotStateIdle : BotStateBase
 
 	override bool IsIdle () { return true; }
 };
-#endif

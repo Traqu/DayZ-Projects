@@ -2,13 +2,6 @@ typedef Param1<int> DoorStartParams;
 typedef Param2<int, bool> DoorFinishParams;
 typedef Param1<int> DoorLockParams;
 
-class DoorManipulationParams
-{
-	int m_DoorIndex;
-	bool m_CheckIfLocked;
-	Object m_Caller;
-}
-
 class BuildingType : EntityAIType
 {
 
@@ -16,10 +9,6 @@ class BuildingType : EntityAIType
 
 class Building : EntityAI
 {
-	// !! Move this to BuildingType !!
-	static ref map<string, ref AdditionalDoorInfosHolder> m_AdditionalDoorInfosMap = new map<string, ref AdditionalDoorInfosHolder>; //! Additional script info
-	protected ref InstancedAttachmentGroupDataBase m_InstancedAttGroupData;
-	
 	proto native int GetLaddersCount();
 	proto native vector GetLadderPosTop(int ladderIndex);
 	proto native vector GetLadderPosBottom(int ladderIndex);
@@ -138,37 +127,22 @@ class Building : EntityAI
 	{
 	}
 	
-	bool CanDoorBeOpened(notnull DoorManipulationParams params)
+	bool CanDoorBeOpened(int doorIndex, bool checkIfLocked = false)
 	{
-		if (IsDoorOpen(params.m_DoorIndex))
+		if (IsDoorOpen(doorIndex))
 			return false;
 
-		if (params.m_CheckIfLocked)
+		if (checkIfLocked)
 		{
-			if (IsDoorLocked(params.m_DoorIndex))
+			if (IsDoorLocked(doorIndex))
 				return false;
 		}
 		else
 		{
-			if (!IsDoorLocked(params.m_DoorIndex))
+			if (!IsDoorLocked(doorIndex))
 				return false;
 		}
-
 		return true;
-	}
-	
-	bool CanDoorBeOpened(int doorIndex, bool checkIfLocked = false)
-	{
-		DoorManipulationParams doorParams = new DoorManipulationParams();
-		doorParams.m_DoorIndex = doorIndex;
-		doorParams.m_CheckIfLocked = checkIfLocked;
-
-		return CanDoorBeOpened(doorParams);
-	}
-
-	bool CanDoorBeClosed(int doorIndex, Object caller)
-	{
-		return IsDoorOpen(doorIndex);
 	}
 	
 	bool CanDoorBeClosed(int doorIndex)
@@ -192,7 +166,7 @@ class Building : EntityAI
 	*/	
 	int GetLockCompatibilityType(int doorIdx)
 	{
-		return GetDoorInfo(doorIdx).m_LockCompatibilityBitMask;
+		return 1 << EBuildingLockType.LOCKPICK; //all doors are lockpickable by default
 	}
 	
 	override void GetDebugActions(out TSelectableActionInfoArrayEx outputList)
@@ -274,19 +248,9 @@ class Building : EntityAI
 		return true;
 	}
 	
-	override bool DisableVicinityIcon()
-	{
-		return true;
-	}
-	
 	override bool IsHealthVisible()
 	{
-		return CanUseConstruction();
-	}
-	
-	override bool ShowZonesHealth()
-	{
-		return CanUseConstruction();
+		return false;
 	}
 
 	ref TIntArray m_InteractActions;
@@ -295,44 +259,11 @@ class Building : EntityAI
 	{
 		m_InteractActions = new TIntArray;
 		g_Game.ConfigGetIntArray("cfgVehicles " +GetType() + " InteractActions", m_InteractActions);
-		
-		InitializeDoorInfos();
 	}
-	
-	protected void InitializeDoorInfos()
-	{
-		if (m_AdditionalDoorInfosMap.Contains(GetType())) //skip if already initialized
-			return;
-		
-		AdditionalDoorInfosHolder holder = new AdditionalDoorInfosHolder(GetType());
-		holder.Init();
-		m_AdditionalDoorInfosMap.Set(GetType(),holder);
-	}
-	
-	AdditionalDoorInfo GetDoorInfo(int doorIdx)
-	{
-		return m_AdditionalDoorInfosMap.Get(GetType()).GetSingleDoorInfo(doorIdx);
-	}
-	
-	AdditionalDoorInfosHolder GetDoorInfoHolder()
-	{
-		return m_AdditionalDoorInfosMap.Get(GetType());
-	}
-	
-	override protected void InitializeInstanceAttachmentGroupsData()
-	{
-		m_InstancedAttGroupData = new InstancedAttachmentGroupDataBuilding(this);
-		m_InstancedAttGroupData.Init();
-	}
-	
+
 	override bool IsInventoryVisible()
 	{
-		return CanUseConstruction() && GetInventory().GetAttachmentSlotsCount() > 0; //TODO: some location checks here?
-	}
-	
-	override bool IsDetectableByVicinityCone()
-	{
-		return CanUseConstruction() && GetInventory().GetAttachmentSlotsCount() > 0; //TODO: some location checks here?
+		return false;
 	}
 
 	override int GetMeleeTargetType()

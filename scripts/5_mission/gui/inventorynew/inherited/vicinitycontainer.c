@@ -402,30 +402,34 @@ class VicinityContainer: CollapsibleContainer
 		map<EntityAI, ref Container> new_showed_items = new map<EntityAI, ref Container>;
 		Container con;
 		
-		foreach (EntityAI showableItem : showable_items)
+		for ( i = 0; i < showable_items.Count(); i++ )
 		{
-			new_showed_items.Insert(showableItem,null);
+			new_showed_items.Insert(showable_items[i],null);
 		}
 		
+		
 		bool need_update_focus = false;
-		foreach (EntityAI ent, Container cont : m_ShowedItems)
+		for ( i = 0; i < m_ShowedItems.Count(); i++ )
 		{
-			cont.UpdateInterval();
-			if (!new_showed_items.Contains(ent))
+			EntityAI ent = m_ShowedItems.GetKey( i );
+			m_ShowedItems.GetElement( i ).UpdateInterval();
+			con = m_ShowedItems.GetElement( i );
+			if ( !new_showed_items.Contains( ent ) )
 			{
-				if (selectesItem && selectesItem.GetHierarchyRoot() == ent)
+				if ( selectesItem && selectesItem.GetHierarchyRoot() == ent)
 				{
+					//ItemManager.GetInstance().SetItemMicromanagmentMode(false);
 					ItemManager.GetInstance().SetSelectedItemEx(null, null, null);
 				}
 				GetMainWidget().Update();
-				if (cont.IsActive())
+				if ( con.IsActive() )
 					need_update_focus = true;
-				Container.Cast(GetParent()).Remove(cont);
-				Remove(cont);
+				Container.Cast( GetParent() ).Remove( con );
+				Remove( con );
 			}
 			else
 			{
-				UpdateHeader(ent, cont, player); //squeezed here, the map is iterated over enough already..
+				UpdateHeader(ent,con,player); //squeezed here, the map is iterated over enough already..
 			}
 		}
 		//////////

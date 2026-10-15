@@ -154,11 +154,11 @@ class TerritoryFlag extends BaseBuildingBase
 		UpdateVisuals();
 	}
 	
-	override void OnCEIterate(float currentTime, float elapsedTime)
+	override void OnCEUpdate()
 	{
-		super.OnCEIterate(currentTime, elapsedTime);
+		super.OnCEUpdate();
 		
-		int time_elapsed_rounded = Math.Round(elapsedTime);
+		int time_elapsed_rounded = Math.Round(m_ElapsedSinceLastUpdate);
 		
 		if ( m_RefresherTimeRemaining > 0 )
 		{
@@ -581,7 +581,18 @@ class TerritoryFlag extends BaseBuildingBase
 	//================================================================
 	// DEBUG
 	//================================================================	
-
+	/*
+	override void DebugCustomState()
+	{
+		//debug
+		m_SyncParts01 = 881;		//full fence with gate
+		m_HasHinges = true;
+		m_HasBase = true;
+		
+		OnVariablesSynchronized();
+	}
+	*/
+	
 	//Debug menu Spawn Ground Special
 	override void OnDebugSpawn()
 	{

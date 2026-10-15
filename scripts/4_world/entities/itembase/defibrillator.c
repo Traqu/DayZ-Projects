@@ -40,7 +40,7 @@ class Defibrillator extends ItemBase
 	
 	override void OnWorkStart()
 	{
-		if ( !g_Game.IsHeadlessOrDedicatedServer() )
+		if ( !g_Game.IsDedicatedServer() )
 			m_ChargingSound = SEffectManager.PlaySoundOnObject(CHARGING_SOUND, this, 0, 0.15);
 		
 		float energy_needed = m_EnergyNeededToCharge / m_ChargeTime;

@@ -1,48 +1,43 @@
 class BatteryCharger extends ItemBase
 {
 	// Model selections
-	protected static const string SEL_CLIPS_CAR			= "clips_car_battery";
-	protected static const string SEL_CLIPS_TRUCK		= "clips_truck_battery";
-	protected static const string SEL_CLIPS_DETACHED		= "clips_detached";
-	protected static const string SEL_CLIPS_FOLDED		= "clips_folded";
-	protected static const string SEL_SWITCH_ON			= "switch_on";
-	protected static const string SEL_SWITCH_OFF			= "switch_off";
-	protected static const string SEL_CORD_PLUGGED		= "cord_plugged";
-	protected static const string SEL_CORD_FOLDED		= "cord_folded";
-	protected static const string SEL_LIGHT_STATE_1		= "light_stand_by";
-	protected static const string SEL_LIGHT_STATE_2		= "light_charging";
-	protected static const string SEL_LIGHT_STATE_3		= "light_charged";
-	protected static const string SEL_STANDBY_LIGHT 		= "light_stand_by_on";
-	protected static const string SEL_SWITCH_LIGHT_ON 	= "light_switch_on";
-	protected static const string SEL_LIGHT_CHARGED_ON 	= "light_charged_on";
-	protected static const string SEL_LIGHT_CHARGING_ON 	= "light_charging_on";
+	static protected const string SEL_CLIPS_CAR			= "clips_car_battery";
+	static protected const string SEL_CLIPS_TRUCK		= "clips_truck_battery";
+	static protected const string SEL_CLIPS_DETACHED	= "clips_detached";
+	static protected const string SEL_CLIPS_FOLDED		= "clips_folded";
+	static protected const string SEL_SWITCH_ON			= "switch_on";
+	static protected const string SEL_SWITCH_OFF		= "switch_off";
+	static protected const string SEL_CORD_PLUGGED		= "cord_plugged";
+	static protected const string SEL_CORD_FOLDED		= "cord_folded";
+	static protected const string SEL_LIGHT_STATE_1		= "light_stand_by";
+	static protected const string SEL_LIGHT_STATE_2		= "light_charging";
+	static protected const string SEL_LIGHT_STATE_3		= "light_charged";
 	
-	protected const string ATTACHED_CLIPS_STATES[] 		= {SEL_CLIPS_CAR, SEL_CLIPS_TRUCK}; // TO DO: If it's required by design, add helicopter battery here and register its selection names.
+	// glow materials
+	static protected const string RED_LIGHT_GLOW		= "dz\\gear\\camping\\data\\battery_charger_light_r.rvmat";
+	static protected const string GREEN_LIGHT_GLOW		= "dz\\gear\\camping\\data\\battery_charger_light_g.rvmat";
+	static protected const string YELLOW_LIGHT_GLOW		= "dz\\gear\\camping\\data\\battery_charger_light_y.rvmat";
+	static protected const string SWITCH_LIGHT_GLOW		= "dz\\gear\\camping\\data\\battery_charger_light_switch_on.rvmat";
+	static protected const string DEFAULT_MATERIAL 		= "dz\\gear\\camping\\data\\battery_charger.rvmat";
+	
+	protected const string 	ATTACHED_CLIPS_STATES[] 		= {SEL_CLIPS_CAR, SEL_CLIPS_TRUCK}; // TO DO: If it's required by design, add helicopter battery here and register its selection names.
 	protected const int 	ATTACHED_CLIPS_STATES_COUNT		= 2; // Reffers to this ^ array
 	
-	int 	m_BatteryEnergy0To100;
-	protected float 	m_ChargeEnergyPerSecond;
 	
-	static protected float m_BlinkingStatusLightInterval = 0.4; // How often the lights blink
-	ref 	Timer m_UpdateStatusLightsTimer;
-	protected bool m_BlinkingStatusLightIsOn = false;	// Status of one blinking light
+	
+	int 						m_BatteryEnergy0To100;
+	protected float 			m_ChargeEnergyPerSecond;
+	
+	static protected 	float 	m_BlinkingStatusLightInterval = 0.4; // How often the lights blink
+	ref 				Timer 	m_UpdateStatusLightsTimer;
+	protected 			bool 	m_BlinkingStatusLightIsOn = false;	// Status of one blinking light
 	
 	void BatteryCharger()
 	{
 		m_ChargeEnergyPerSecond = g_Game.ConfigGetFloat ("CfgVehicles " + GetType() + " ChargeEnergyPerSecond");
 		m_UpdateStatusLightsTimer = new Timer( CALL_CATEGORY_SYSTEM );
-		RegisterNetSyncVariableInt("m_BatteryEnergy0To100");
-	}
-	
-	override void EEInit()
-	{
-		super.EEInit();
-		
-		// Set visuals on init
 		SwitchLightOff();
-		RedLightOff();
-		GreenLightOff();
-		YellowLightOff();
+		RegisterNetSyncVariableInt("m_BatteryEnergy0To100");
 	}
 	
 	override bool IsElectricAppliance()
@@ -297,39 +292,38 @@ class BatteryCharger extends ItemBase
 	// ON
 	void RedLightOn()
 	{
-		SetAnimationPhase(SEL_STANDBY_LIGHT, 0);
+		SetObjectMaterial( 0, RED_LIGHT_GLOW );
 	}
 	void GreenLightOn()
 	{
-		SetAnimationPhase(SEL_LIGHT_CHARGED_ON, 0);
+		SetObjectMaterial( 2, GREEN_LIGHT_GLOW );
 	}
 	void YellowLightOn()
 	{
-		SetAnimationPhase(SEL_LIGHT_CHARGING_ON, 0);
+		SetObjectMaterial( 1, YELLOW_LIGHT_GLOW );
 	}
 	void SwitchLightOn()
 	{
-		SetAnimationPhase(SEL_SWITCH_LIGHT_ON, 0);
-		SetAnimationPhase(SEL_SWITCH_ON, 1.0);
+		SetObjectMaterial( 3, SWITCH_LIGHT_GLOW );
 	}
 	// OFF
 	void RedLightOff()
 	{
-		SetAnimationPhase(SEL_STANDBY_LIGHT, 1.0);
+		SetObjectMaterial( 0, DEFAULT_MATERIAL );
 	}
 	void GreenLightOff()
 	{
-		SetAnimationPhase(SEL_LIGHT_CHARGED_ON, 1.0);
+		SetObjectMaterial( 2, DEFAULT_MATERIAL );
 	}
 	void YellowLightOff()
 	{
-		SetAnimationPhase(SEL_LIGHT_CHARGING_ON, 1.0);
+		SetObjectMaterial( 1, DEFAULT_MATERIAL );
 	}
 	void SwitchLightOff()
 	{
-		SetAnimationPhase(SEL_SWITCH_LIGHT_ON, 1.0);
-		SetAnimationPhase(SEL_SWITCH_ON, 0);
+		SetObjectMaterial( 3, DEFAULT_MATERIAL );
 	}
+	
 	
 	override void OnSwitchOn()
 	{
@@ -411,6 +405,11 @@ class BatteryCharger extends ItemBase
 	override bool IsDeployable()
 	{
 		return true;
+	}
+	
+	override string GetDeploySoundset()
+	{
+		return "placeBatteryCharger_SoundSet";
 	}
 	
 	override void SetActions()

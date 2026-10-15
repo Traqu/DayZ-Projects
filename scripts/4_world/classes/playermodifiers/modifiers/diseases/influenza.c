@@ -36,13 +36,14 @@ class InfluenzaMdfr : ModifierBase
 
 	override protected void OnActivate(PlayerBase player)
 	{
+		player.IncreaseDiseaseCount();
+
 		m_ModifiersManager = player.GetModifiersManager();
 	}
 
 	override protected void OnDeactivate(PlayerBase player)
 	{
 		player.DecreaseDiseaseCount();
-		DoOnce.Clear(ClassName());
 
 		player.SetTemporaryResistanceToAgent(eAgents.INFLUENZA, TEMPORARY_RESISTANCE_TIME);
 	}
@@ -62,7 +63,6 @@ class InfluenzaMdfr : ModifierBase
 
 		if (Math.RandomFloat01() < chanceOfCough / coughRandomDivider)
 		{
-			DoOnce.Run(ClassName(), player, "IncreaseDiseaseCount");
 			player.GetSymptomManager().QueueUpPrimarySymptom(SymptomIDs.SYMPTOM_COUGH);
 		}
 	}

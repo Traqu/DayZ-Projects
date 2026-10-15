@@ -176,10 +176,8 @@ class Land_Underground_WaterReservoir : BuildingBase
 	override void EOnPostSimulate(IEntity other, float timeSlice)
 	{
 		#ifndef SERVER
-		#ifndef NO_GUI
 		HandleSoundEffects();
 		HandleVisualEffects();
-		#endif
 		#endif
 		
 		if (!g_Game.IsServer())

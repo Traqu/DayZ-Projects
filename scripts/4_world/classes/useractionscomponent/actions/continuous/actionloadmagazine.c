@@ -144,10 +144,10 @@ class ActionLoadMagazineQuick: ActionContinuousBase
 		float dmg;
 		string ammoType;
 						
-		if ( trg.ServerAcquireCartridgeEx(dmg, ammoType) )
+		if ( trg.ServerAcquireCartridge(dmg, ammoType) )
 		{
-			if ( !itm.ServerStoreCartridgeEx(dmg, ammoType) )			
-				trg.ServerStoreCartridgeEx(dmg, ammoType);
+			if ( !itm.ServerStoreCartridge(dmg, ammoType) )			
+				trg.ServerStoreCartridge(dmg, ammoType);
 			else
 				itm.ApplyManipulationDamage(); //damages magazine
 		}

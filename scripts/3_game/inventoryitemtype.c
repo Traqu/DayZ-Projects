@@ -140,14 +140,12 @@ class InventoryItemSoundDetach : InventoryItemSoundBase
 class InventoryItemType : EntityAIType
 {
 	private ref map<int, ref AnimSoundEvent> m_AnimSoundEvents;
-	protected string m_AlternateGhostIcon = "";//"set:dayz_inventory image:missing";
 	private ref map<int, ref InventoryItemSoundBase> m_ActionSoundEvents = new map<int, ref InventoryItemSoundBase>(); // id (SoundConstants), InventoryItemSoundBase
 	private string m_DropSoundSet;
 	
-	private void InventoryItemType()
+	void InventoryItemType()
 	{
 		LoadSoundEvents();
-		LoadAdditionalInfo();
 	}
 	
 	void ~InventoryItemType()
@@ -308,18 +306,6 @@ class InventoryItemType : EntityAIType
 	#endif
 		
 		return false;
-	}
-
-	protected void LoadAdditionalInfo()
-	{
-		string path = "CfgVehicles " + GetName() + " greyscale_icon";
-		if (g_Game.ConfigIsExisting(path))
-			g_Game.ConfigGetText(path, m_AlternateGhostIcon);
-	}
-	
-	string GetGhostIconImagepath()
-	{
-		return m_AlternateGhostIcon;
 	}
 
 	AnimSoundEvent GetSoundEvent(int event_id)

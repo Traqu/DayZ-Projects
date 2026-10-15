@@ -90,7 +90,7 @@ class MainMenuConsole extends UIScriptedMenu
 		CheckWidth();
 
 		#ifdef ENABLE_CAROUSEL
-		RefreshNewsCarousel();
+		m_NewsCarousel = new NewsCarousel(m_NewsCarouselFrame, this);
 		#else
 		m_NewsCarousel = null;
 		#endif
@@ -104,8 +104,7 @@ class MainMenuConsole extends UIScriptedMenu
 		OnInputDeviceChanged(g_Game.GetInput().GetCurrentInputDevice());
 
 		g_Game.SetLoadState(DayZLoadState.MAIN_MENU_CONTROLLER_SELECT);
-		MainMenuData.SubscribeDLCUpdate();
-		MainMenuData.GetOnDLCChangedSI().Insert(OnDLCChange);
+		g_Game.GetContentDLCService().m_OnChange.Insert(OnDLCChange);
 
 		#ifdef PLATFORM_MSSTORE
 		// Enable exit button
@@ -146,16 +145,23 @@ class MainMenuConsole extends UIScriptedMenu
 			g_Game.GetMission().GetOnInputDeviceChanged().Remove(OnInputDeviceChanged);
 		}
 		
-		MainMenuData.GetOnDLCChangedSI().Remove(OnDLCChange);
-		MainMenuData.UnsubscribeDLCUpdate();
+		if (g_Game.GetContentDLCService())
+			g_Game.GetContentDLCService().m_OnChange.Remove(OnDLCChange);
 	}
 	
-	void OnDLCChange()
+	void OnDLCChange(EDLCId dlcId)
 	{
-		UpdateControlsElements();
+		MainMenuData.ClearAllDLCs();
+		LoadMods();
 		
 		#ifdef ENABLE_CAROUSEL
-		RefreshNewsCarousel();
+		if (m_NewsCarousel)
+		{
+			m_NewsCarousel.Destroy();
+			m_NewsCarousel = null;
+			m_NewsCarousel = new NewsCarousel(m_NewsCarouselFrame, this);
+			m_NewsCarousel.ShowNewsCarousel(true);
+		}
 		#endif
 	}
 	
@@ -164,19 +170,6 @@ class MainMenuConsole extends UIScriptedMenu
 		MainMenuData.LoadMods();	
 		UpdateControlsElements();
 	}
-	
-	#ifdef ENABLE_CAROUSEL
-	protected void RefreshNewsCarousel()
-	{
-		if (m_NewsCarousel)
-		{
-			m_NewsCarousel.Destroy();
-			m_NewsCarousel = null;
-		}
-		
-		m_NewsCarousel = new NewsCarousel(m_NewsCarouselFrame, this);
-	}
-	#endif
 	
 	protected void OnInputPresetChanged()
 	{
@@ -409,10 +402,6 @@ class MainMenuConsole extends UIScriptedMenu
 		LoadMods();
 		Refresh();
 		
-		#ifdef ENABLE_CAROUSEL
-		RefreshNewsCarousel();
-		#endif
-		
 		if (m_ScenePC && m_ScenePC.GetIntroCamera())
 		{
 			m_ScenePC.GetIntroCamera().LookAt(m_ScenePC.GetIntroCharacter().GetPosition() + Vector(0, 1, 0));
@@ -478,26 +467,25 @@ class MainMenuConsole extends UIScriptedMenu
 		}
 		
 		#ifdef ENABLE_CAROUSEL
-		int articleCount = m_NewsCarousel.GetArticleCount();
-		if (m_NewsCarousel && m_NewsCarousel.IsVisible() && articleCount > 0)
+		if (m_NewsCarousel)
 		{
 			if (GetUApi().GetInputByID(UAUICtrlX).LocalHold())
 			{
 				m_NewsCarousel.ShowPromotion();
 			}
 			
-			if (articleCount > 1)
+			if (GetUApi().GetInputByID(UAUIPadRight).LocalPress())
 			{
-				if (GetUApi().GetInputByID(UAUIPadRight).LocalPress())
-					m_NewsCarousel.OnClickNextArticle();
-				
-				if (GetUApi().GetInputByID(UAUIPadLeft).LocalPress())
-					m_NewsCarousel.OnClickPreviousArticle();
+				m_NewsCarousel.OnClickNextArticle();
 			}
+			
+			if (GetUApi().GetInputByID(UAUIPadLeft).LocalPress())
+			{
+				m_NewsCarousel.OnClickPreviousArticle();
+			}
+			
+			m_NewsCarousel.Update(timeslice);
 		}
-		
-		if (m_NewsCarousel)
-			m_NewsCarousel.Update(timeslice);   // animation update must keep running
 		#endif
 	}
 	
@@ -756,7 +744,12 @@ class MainMenuConsole extends UIScriptedMenu
 		{
 			m_WidthType = widthType;
 			#ifdef ENABLE_CAROUSEL
-			RefreshNewsCarousel();
+			if (m_NewsCarousel)
+			{
+				m_NewsCarousel.Destroy();
+				m_NewsCarousel = null;
+				m_NewsCarousel = new NewsCarousel(m_NewsCarouselFrame, this);
+			}
 			#endif
 		}
 	}

@@ -41,11 +41,11 @@ class ObjectSpawnerHandler
 		if (item.name.Contains("\\") || item.name.Contains("/"))
 		{
 			if (ValidatePath(item.name))
-				object = g_Game.CreateStaticObjectUsingP3D(item.name, vector.ArrayToVec(item.pos), vector.ArrayToVec(item.ypr),scale, true);
+				object = g_Game.CreateStaticObjectUsingP3D(item.name, vector.ArrayToVec(item.pos), vector.ArrayToVec(item.ypr),scale);
 		}
 		else
 		{
-			int flags = ECE_SETUP | ECE_UPDATEPATHGRAPH | ECE_CREATEPHYSICS | ECE_NOLIFETIME | ECE_DYNAMIC_PERSISTENCY | ECE_OBJECT_SPAWNER;
+			int flags = ECE_SETUP | ECE_UPDATEPATHGRAPH | ECE_CREATEPHYSICS | ECE_NOLIFETIME | ECE_DYNAMIC_PERSISTENCY;
 			
 			if (item.enableCEPersistency)
 			{

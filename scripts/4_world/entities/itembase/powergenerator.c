@@ -366,6 +366,11 @@ class PowerGeneratorBase extends ItemBase
 	// ADVANCED PLACEMENT
 	//================================================================
 		
+	override string GetDeploySoundset()
+	{
+		return "placePowerGenerator_SoundSet";
+	}
+	
 	override void SetActions()
 	{
 		super.SetActions();

@@ -6,4 +6,9 @@ class BadgeHeartbeat extends DisplayElementBadge
 		m_Key 	= 	NTFKEY_HEARTBEAT;
 		m_Type	=	eDisplayElements.DELM_BADGE_HEARTBEAT;
 	}
+		
+	override void UpdateHUD()
+	{
+		super.UpdateHUD();
+	}
 }

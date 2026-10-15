@@ -15,8 +15,7 @@ class Debug
 	private static const string LOG_DEBUG_WEIGHT			= "Weight";
 	private static const string LOG_DEBUG_MELEE				= "Melee";
 	private static const string LOG_DEBUG_WEATHER			= "Weather";
-	private static const string LOG_DEBUG_RADIO_GAMEPLAY	= "RadioGameplay";
-	private static const string LOG_DEBUG_AUTOTEST			= "Autotest";
+
 	private static const string	LOG_INFO					= "Info";
 	private static const string	LOG_WARNING					= "Warning";
 	private static const string	LOG_ERROR					= "Error";
@@ -263,18 +262,6 @@ class Debug
 		LogMessage(LOG_DEBUG_WEATHER, plugin, entity, author, label, message);
 	}
 	
-	
-	static void	RadioGameplayLog(string message = LOG_DEFAULT, string plugin = LOG_DEFAULT, string author = LOG_DEFAULT, string label = LOG_DEFAULT, string entity = LOG_DEFAULT)
-	{
-		LogMessage(LOG_DEBUG_RADIO_GAMEPLAY, plugin, entity, author, label, message);
-	}
-
-	static void	AutotestLog(string message = LOG_DEFAULT, string plugin = LOG_DEFAULT, string author = LOG_DEFAULT, string label = LOG_DEFAULT, string entity = LOG_DEFAULT)
-	{
-		#ifdef AUTOTEST
-		LogMessage(LOG_DEBUG_AUTOTEST, plugin, entity, author, label, message);
-		#endif
-	}
 	/**
 	\brief Prints debug message with normal prio
 		\param msg \p string Debug message for print
@@ -438,7 +425,7 @@ class Debug
 	static void CleanupDrawShapes(array<Shape> shapes)
 	{
 		foreach (Shape shape : shapes)
-			shapes.RemoveItem(shape);
+			Debug.RemoveShape(shape);
 		
 		shapes.Clear();
 	}
@@ -446,7 +433,7 @@ class Debug
 	static void CleanupTextsSS(array<ref DebugTextScreenSpace> texts)
 	{
 		foreach (DebugTextScreenSpace text : texts)
-			texts.RemoveItem(text);
+			Debug.RemoveTextSS(text);
 		
 		texts.Clear();
 	}
@@ -454,7 +441,7 @@ class Debug
 	static void CleanupTextsWS(array<ref DebugTextWorldSpace> texts)
 	{
 		foreach (DebugTextWorldSpace text : texts)
-			texts.RemoveItem(text);
+			Debug.RemoveTextWS(text);
 		
 		texts.Clear();
 	}
@@ -642,14 +629,16 @@ class Debug
 #endif
 		
 		//! Avoid writing to this file as it will grow indefinitely
+#ifdef DIAG_DEVELOPER
 		//! Active when '-logToFile=1' is set
 #ifdef LOG_TO_FILE
-		FileHandle fileHandle = OpenFile(GetFileName(), FileMode.APPEND);
+		FileHandle fileHandle = OpenFile(GetFileName(), FileMode.APPEND);		
 		if (fileHandle != 0)
 		{
 			FPrintln(fileHandle, log_message);
 			CloseFile(fileHandle);
 		}
+#endif
 #endif
 
 		//! Active when '-logToRpt=1' is set
@@ -712,7 +701,6 @@ class LogManager
 	static bool m_DoBaseBuildingLog;
 	static bool m_DoWeaponLog;
 	static bool m_DoWeatherLog;
-	static bool m_DoRadioGameplayLog;
 	static bool m_DoBleedingChanceLog;
 	
 	static void Init()
@@ -733,7 +721,6 @@ class LogManager
 		m_DoBaseBuildingLog			= IsCLIParam("doBaseBuildingLog");
 		m_DoWeaponLog 				= IsCLIParam("doWeaponLog");
 		m_DoWeatherLog 				= IsCLIParam("doWeatherLog");
-		m_DoRadioGameplayLog 		= IsCLIParam("doRadioGameplayLog");
 	}
 	
 	static bool IsLogsEnable()
@@ -839,11 +826,6 @@ class LogManager
 	static bool IsWeatherLogEnabled()
 	{
 		return m_DoWeatherLog;
-	}
-	
-	static bool IsRadioGameplayLogEnabled()
-	{
-		return m_DoRadioGameplayLog;
 	}
 	
 	static bool IsBleedingChancesLogEnable()

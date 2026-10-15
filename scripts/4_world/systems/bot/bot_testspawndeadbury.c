@@ -144,9 +144,11 @@ class BotPerformAction extends BotStateBase
 
 			if (m_Owner.GetInstanceType() == DayZPlayerInstanceType.INSTANCETYPE_CLIENT)
 			{
-				//ActionManagerClient cli_mgr = ActionManagerClient.Cast(m_Owner.GetActionManager());
-				//if (cli_mgr)
-				//	cli_mgr.PerformAction(m_ActionID, new ActionTarget(e.m_Entity, null, -1, vector.Zero, -1), e.m_Entity);
+#ifdef BOT
+				ActionManagerClient cli_mgr = ActionManagerClient.Cast(m_Owner.GetActionManager());
+				if (cli_mgr)
+					cli_mgr.PerformAction(m_ActionID, new ActionTarget(e.m_Entity, null, -1, vector.Zero, -1), e.m_Entity);
+#endif
 			}
 		}
 	}

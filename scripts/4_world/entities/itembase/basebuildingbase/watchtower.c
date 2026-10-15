@@ -18,11 +18,6 @@ class Watchtower extends BaseBuildingBase
 	{
 	}
 	
-	override bool IsActionTargetVisible()
-	{
-		return true;
-	}
-	
 	override string GetConstructionKitType()
 	{
 		return "WatchtowerKit";

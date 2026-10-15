@@ -3,20 +3,23 @@ class ActionDismantlePartCB : ActionContinuousBaseCB
 	override void CreateActionComponent()
 	{
 		float time = SetCallbackDuration(m_ActionData.m_MainItem);
-		m_ActionData.m_ActionComponent = new CAContinuousTime(time);
+		m_ActionData.m_ActionComponent = new CAContinuousTime( time );
 	}
 	
 	float SetCallbackDuration( ItemBase item )
 	{
-		#ifdef DIAG_DEVELOPER
-		if (m_ActionData.m_Player.GetConstructionActionData().GetFastConstructionMode() == EConstructionDebugModes.FAST)
-			return 1;
-		#endif
-		
-		if (item) //TODO: configure and evaluate item suitability?
-			return UATimeSpent.BASEBUILDING_CONSTRUCT_MEDIUM;
-		else
-			return UATimeSpent.BASEBUILDING_CONSTRUCT_SLOW;
+		/*switch( item.Type() )
+		{
+			case Pickaxe:
+			case Shovel:
+			case FieldShovel:
+				return UATimeSpent.BASEBUILDING_DECONSTRUCT_MEDIUM;
+			case FirefighterAxe:
+				return UATimeSpent.BASEBUILDING_DECONSTRUCT_FAST;
+			default:
+				return UATimeSpent.BASEBUILDING_DECONSTRUCT_SLOW;
+		}*/
+		return UATimeSpent.BASEBUILDING_DECONSTRUCT_SLOW;
 	}
 };
 
@@ -30,35 +33,36 @@ class ActionDismantlePart: ActionContinuousBase
 		m_StanceMask = DayZPlayerConstants.STANCEMASK_ERECT;	
 		
 		m_SpecialtyWeight = UASoftSkillsWeight.ROUGH_HIGH;
-		m_LockTargetOnUse 	= false;
 		m_Text = "#dismantle";
 	}
 	
 	override void CreateConditionComponents()  
 	{	
 		m_ConditionItem = new CCINonRuined;
-		m_ConditionTarget = new CCTCursor;
+		m_ConditionTarget = new CCTNone;//CCTNonRuined( UAMaxDistances.BASEBUILDING );
 	}
 	
 	override void OnActionInfoUpdate( PlayerBase player, ActionTarget target, ItemBase item )
 	{
-		ConstructionActionData cad = player.GetConstructionActionData();
-		ConstructionPart part = cad.GetTargetPart();
-		if (part)
+		ConstructionActionData construction_action_data = player.GetConstructionActionData();
+		m_Text = "#dismantle " + construction_action_data.GetTargetPart().GetName();
+	}
+		
+	override string GetText()
+	{
+		PlayerBase player = PlayerBase.Cast( g_Game.GetPlayer() );
+		if ( player )
 		{
-			string overrideText = part.GetDismantleTextOverride();
-			if (overrideText == string.Empty)
-				m_Text = "#dismantle "+ part.GetName();
-			else
-				m_Text = overrideText;
+			ConstructionActionData construction_action_data = player.GetConstructionActionData();
+			ConstructionPart constrution_part = construction_action_data.GetTargetPart();
 			
-			#ifdef DIAG_DEVELOPER
-			if (DiagMenu.GetBool(DiagMenuIDs.BASEBUILDING_FULLDEBUG))
+			if ( constrution_part )
 			{
-				m_Text = "dbgDismantle | part classname: " + part.GetPartName();
+				return "#dismantle" + " " + constrution_part.GetName();
 			}
-			#endif
 		}
+		
+		return "";
 	}
 	
 	override bool CanBeUsedLeaning()
@@ -73,11 +77,6 @@ class ActionDismantlePart: ActionContinuousBase
 
 	override bool ActionCondition( PlayerBase player, ActionTarget target, ItemBase item )
 	{
-		#ifdef DIAG_DEVELOPER
-		if (player.GetConstructionActionData().GetFastConstructionMode() == EConstructionDebugModes.INSTANT)
-			return false;
-		#endif
-		
 		if ( player.IsPlacingLocal() )
 			return false;
 		
@@ -95,20 +94,18 @@ class ActionDismantlePart: ActionContinuousBase
 	
 	override void OnFinishProgressServer( ActionData action_data )
 	{	
-		EntityAI ent = EntityAI.Cast(action_data.m_Target.GetObject());
-		ConstructionBase construction = ConstructionBase.Cast(ent.GetConstructionBasic());
-		
+		BaseBuildingBase base_building = BaseBuildingBase.Cast( action_data.m_Target.GetObject() );
+		Construction construction = base_building.GetConstruction();
 		ConstructionActionData construction_action_data = action_data.m_Player.GetConstructionActionData();
 		ConstructionPart construction_part = construction_action_data.GetTargetPart();
 		
 		if ( construction.CanDismantlePart( construction_part.GetPartName(), action_data.m_MainItem ) )
 		{
 			//build
-			construction.DismantlePartServerEx( action_data.m_Player, construction_part.GetPartName(), AT_DISMANTLE_PART );
+			construction.DismantlePartServer( action_data.m_Player, construction_part.GetPartName(), AT_DISMANTLE_PART );
 			
 			//add damage to tool
-			if (action_data.m_MainItem)
-				action_data.m_MainItem.DecreaseHealth(UADamageApplied.DISMANTLE, false);
+			action_data.m_MainItem.DecreaseHealth( UADamageApplied.DISMANTLE, false );
 		}
 	}
 		
@@ -148,52 +145,26 @@ class ActionDismantlePart: ActionContinuousBase
 	{	
 		if (player && !player.IsPlacingLocal() && !player.IsPlacingServer())
 		{
+			Object targetObject = target.GetObject();
 			EntityAI targetEntity;
-			if (Class.CastTo(targetEntity,target.GetObject()) && targetEntity.CanUseConstruction())
+			if (targetObject && targetObject.CanUseConstruction())
 			{
-				if (targetEntity.FindAttachmentBySlotName("Material_FPole_Flag"))
+				//invalid if is gate and is locked
+				if (Class.CastTo(targetEntity, targetObject) && (targetEntity.FindAttachmentBySlotName("Att_CombinationLock") || targetEntity.FindAttachmentBySlotName("Material_FPole_Flag")) )
 					return false;
 				
-				BaseBuildingBase baseBuilding = BaseBuildingBase.Cast(targetEntity);
-				ConstructionBase construction = ConstructionBase.Cast(targetEntity.GetConstructionBasic());
-				string partName;
-				ConstructionPart constructionPart;
+				string partName = targetObject.GetActionComponentName(target.GetComponentIndex());
 				
-				array<string> compNames = new array<string>();
-				targetEntity.GetActionComponentNameList(target.GetComponentIndex(), compNames);
-				int count = compNames.Count();
-				for (int i = 0; i < count; ++i)
-				{
-					partName = compNames[i];
-					constructionPart = construction.GetConstructionPartToDismantle(partName, item);
-					if (constructionPart)
-						break;
-				}
+				BaseBuildingBase baseBuilding = BaseBuildingBase.Cast(targetObject);
+				Construction construction = baseBuilding.GetConstruction();		
+				ConstructionPart constructionPart = construction.GetConstructionPartToDismantle(partName, item);
 				
 				if (constructionPart)
 				{
-					//invalid on gate if the gate is opened
-					if (baseBuilding && constructionPart.IsGate() && baseBuilding.IsOpened())
-						return false;
 					
-					if (constructionPart.HasEssentialAttachmentSlots())
-					{
-						array<string> slots = constructionPart.GetEssentialAttachmentSlots();
-						foreach(string slotName: slots)
-						{
-							EntityAI attachment = targetEntity.FindAttachmentBySlotName(slotName);
-							if (attachment)
-							{
-								#ifdef DIAG_DEVELOPER
-								if (DiagMenu.GetBool(DiagMenuIDs.BASEBUILDING_FULLDEBUG))
-								{
-									DbgPrintFailure(constructionPart, "essential attachment " + attachment.GetType() + " attached in slot: " + slotName);
-								}
-								#endif
-								return false;
-							}
-						}
-					}
+					//invalid on gate if the gate is opened
+					if (constructionPart.IsGate() && baseBuilding.IsOpened())
+						return false;
 					
 					//camera and position checks
 					bool checked = false;
@@ -201,65 +172,21 @@ class ActionDismantlePart: ActionContinuousBase
 					if (constructionPart.IsBase())
 						checked = true;
 					
-					if (!checked && targetEntity.IsPlayerInsideEx(player, partName))
+					if (!checked && baseBuilding.IsPlayerInside(player, partName))
 					{
 						//Camera check (client-only)
 						if (camera_check)
 						{
 							if (g_Game && (!g_Game.IsDedicatedServer()))
 							{
-								if (targetEntity.IsFacingCamera(partName))
-								{
-									#ifdef DIAG_DEVELOPER
-									if (DiagMenu.GetBool(DiagMenuIDs.BASEBUILDING_FULLDEBUG))
-									{
-										DbgPrintFailure(constructionPart, "!IsFacingCamera");
-									}
-									#endif
+								if (baseBuilding.IsFacingCamera(partName))
 									return false;
-								}
 							}
 						}
-						
+
 						checked = true;
 					}
-					
-					//directional checks first
-					if (!construction.ConstructionDirectionCheck(player, constructionPart, EConstructionDirCheckType.INDOORS))
-					{
-						#ifdef DIAG_DEVELOPER
-						if (DiagMenu.GetBool(DiagMenuIDs.BASEBUILDING_FULLDEBUG))
-						{
-							DbgPrintFailure(constructionPart, "ConstructionDirectionCheck failing, type: EConstructionDirCheckType.INDOORS");
-						}
-						#endif
-						return false;
-					}
-					
-					//Also checks for the reversible parts
-					if (constructionPart.IsReversible() && (constructionPart.IsReversedLocal() != construction.ConstructionDirectionCheck(player, constructionPart, EConstructionDirCheckType.REFERENCE_DIRECTION)))
-					{
-						#ifdef DIAG_DEVELOPER
-						if (DiagMenu.GetBool(DiagMenuIDs.BASEBUILDING_FULLDEBUG))
-						{
-							DbgPrintFailure(constructionPart, "ConstructionDirectionCheck failing, type: EConstructionDirCheckType.REFERENCE_DIRECTION");
-						}
-						#endif
-						return false;
-					}
-					
-					if (!construction.ConstructionInsiderBoxCheck(player, constructionPart))
-					{
-						#ifdef DIAG_DEVELOPER
-						if (DiagMenu.GetBool(DiagMenuIDs.BASEBUILDING_FULLDEBUG))
-						{
-							DbgPrintFailure(constructionPart, "ConstructionInsiderBoxCheck failing");
-							//Debug.Draw
-						}
-						#endif
-						return false;
-					}
-					
+
 					if (checked)
 					{
 						ConstructionActionData constructionActionData = player.GetConstructionActionData();
@@ -276,24 +203,10 @@ class ActionDismantlePart: ActionContinuousBase
 	
 	override string GetAdminLogMessage(ActionData action_data)
 	{
-		ConstructionActionData cad = action_data.m_Player.GetConstructionActionData();
-		ConstructionPart constructionPart = cad.GetTargetPart();
+		ConstructionActionData construction_action_data = action_data.m_Player.GetConstructionActionData();
+		ConstructionPart construction_part = construction_action_data.GetTargetPart();
 		
-		string itemName = "hands";
-		if (action_data.m_MainItem)
-			itemName = action_data.m_MainItem.GetDisplayName();
-		
-		string message = string.Format("Dismantled %1 from %2 with %3", constructionPart.GetName(), action_data.m_Target.GetObject().GetDisplayName(), itemName);
+		string message = string.Format("Dismantled %1 from %2 with %3", construction_part.GetName(), action_data.m_Target.GetObject().GetDisplayName(), action_data.m_MainItem.GetDisplayName() );
 		return message;
 	}
-	
-	#ifdef DIAG_DEVELOPER
-	protected void DbgPrintFailure(ConstructionPart part, string reason)
-	{
-		ActionDismantleDebugData data = new ActionDismantleDebugData();
-		data.partName = part.GetPartName();
-		data.reason = reason;
-		ConstructionDebug.SetActionDismantleData(data);
-	}
-	#endif
 }

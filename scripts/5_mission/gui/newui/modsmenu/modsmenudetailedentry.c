@@ -59,18 +59,6 @@ class ModsMenuDetailedEntry extends ScriptedWidgetEventHandler
 	void ~ModsMenuDetailedEntry()
 	{
 		delete m_Root;
-		
-		if (GetGame() && GetGame().GetContentDLCService())
-		{
-			g_Game.GetContentDLCService().Unsubscribe(OnDLCChange);
-		}
-	}
-	
-	void OnDLCChange(EDLCId dlcId)
-	{
-		bool isOwned = m_Data.GetIsOwned();
-		m_Root.FindAnyWidget("Owned").Show( isOwned );
-		m_Root.FindAnyWidget("Unowned").Show( !isOwned );
 	}
 	
 	Widget GetWidget()
@@ -185,8 +173,6 @@ class ModsMenuDetailedEntry extends ScriptedWidgetEventHandler
 			m_Root.FindAnyWidget("Unowned").Show( !isOwned );
 			m_ActionPurchase.Show( true );
 			m_Version.Show( false );
-			
-			g_Game.GetContentDLCService().Subscribe(OnDLCChange);
 		}
 	}
 	

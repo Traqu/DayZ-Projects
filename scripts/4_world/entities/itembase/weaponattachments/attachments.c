@@ -33,7 +33,6 @@ class GhillieAtt_Mossy : GhillieAtt_ColorBase {};
 class GhillieAtt_Tan : GhillieAtt_ColorBase {};
 class GhillieAtt_Woodland : GhillieAtt_ColorBase {};
 class GhillieAtt_Winter : GhillieAtt_ColorBase {};
-class GhillieAtt_Desert : GhillieAtt_ColorBase {};
 class Groza_LowerReceiver : ButtstockBase {};
 class M249_Bipod : ButtstockBase {};
 class M4_CQBBttstck : ButtstockBase {};
