@@ -67,7 +67,7 @@ class int
 
 		return str;
 	}
-	
+
 	/**
 	\brief Integer to hex (as string)
 		\return \p string Converted integer as hexadecimal value
@@ -516,6 +516,20 @@ class vector
 	{
 		return Vector(arr[0], arr[1], arr[2]);
 	}
+	
+	//! Makes sure all values in MIN are lower than the MAX
+	static void SanitizeMinsMaxs(inout vector min, inout vector max)
+	{
+		vector minTmp, maxTmp;
+		minTmp[0] = Math.Min(min[0],max[0]);
+		maxTmp[0] = Math.Max(min[0],max[0]);
+		minTmp[1] = Math.Min(min[1],max[1]);
+		maxTmp[1] = Math.Max(min[1],max[1]);
+		minTmp[2] = Math.Min(min[2],max[2]);
+		maxTmp[2] = Math.Max(min[2],max[2]);
+		min = minTmp;
+		max = maxTmp;
+	}
 };
 
 class typename
@@ -565,7 +579,7 @@ class typename
 		int cnt = e.GetVariableCount();
 		int val;
 
-		for (int i = 0; i < cnt; i++)
+		for (int i = 0; i < cnt; ++i)
 		{
 			if (e.GetVariableType(i) == int && e.GetVariableValue(null, i, val) && val == enumValue)
 			{
@@ -574,6 +588,56 @@ class typename
 		}
 				
 		return "unknown";
+	}
+	
+	static string EnumFlagsToString(typename enumType, int value)
+	{
+	    // Exact match first (non-flags and exact declared combinations)
+	    string exact = enumType.EnumToString(enumType, value);
+	    if (exact != "unknown")
+	        return exact;
+	
+	    // unknown handlind
+	    if (value == 0)
+	    {
+	        string zeroName = enumType.EnumToString(enumType, 0);
+	        if (zeroName != string.Empty)
+	            return zeroName;
+	        else
+	            return "unknown";
+	    }
+	
+	    // Iterate bits and resolve each flag name
+	    int remaining = value;
+	    array<string> parts = {};
+	    int bit = 1;
+	
+	    // keep within 32-bit enums
+	    for (int i = 0; i < 32 && remaining != 0; ++i)
+	    {
+			bit <<= 1;
+	        if ((value & bit) != 0)
+	        {
+	            string name = enumType.EnumToString(enumType, bit);
+	            if (name != "unknown")
+	            {
+	                parts.Insert(name);
+	                remaining &= ~bit;
+	            }
+	        }
+	    }
+	
+	    // If we couldn't map all bits, include the unknown residue in hex
+	    if (remaining != 0)
+	        parts.Insert(string.Format("0x%1", remaining.ToHex()));
+	
+	    if (parts.Count() == 0)
+	    {
+	        // Nothing mapped; last resort: hex of the original value
+	        return string.Format("0x%1", value.ToHex());
+	    }
+	
+	    return string.Join("|", parts);
 	}
 	
 	/**
@@ -587,7 +651,7 @@ class typename
 	    int count = e.GetVariableCount();
 	    int value;
 	   
-	    for (int i = 0; i < count; i++)
+	    for (int i = 0; i < count; ++i)
 	    {
 	        if (e.GetVariableType(i) == int && e.GetVariableValue(null, i, value) && e.GetVariableName(i) == enumName)
 	        {
@@ -614,6 +678,11 @@ class EnumTools
 	static string EnumToString(typename e, int enumValue)
 	{
 		return typename.EnumToString(e, enumValue);
+	}
+	
+	static string EnumFlagsToString(typename enumType, int enumValue)
+	{
+		return typename.EnumFlagsToString(enumType, enumValue);
 	}
 	
 	/**

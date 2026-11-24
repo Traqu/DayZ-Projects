@@ -11,7 +11,7 @@ class TurnItemIntoItemLambda extends ReplaceItemWithNewLambda
 		SetTransferParams();
 	}
 	
-	void SetTransferParams (bool transfer_agents = true, bool transfer_variables = true, bool transfer_health = true, bool exclude_quantity = false, float quantity_override = -1)
+	void SetTransferParams(bool transfer_agents = true, bool transfer_variables = true, bool transfer_health = true, bool exclude_quantity = false, float quantity_override = -1)
 	{
 		m_TransferAgents = transfer_agents;
 		m_TransferVariables = transfer_variables; 
@@ -20,7 +20,7 @@ class TurnItemIntoItemLambda extends ReplaceItemWithNewLambda
 		m_quantity_override = quantity_override;
 	}
 
-	override void CopyOldPropertiesToNew (notnull EntityAI old_item, EntityAI new_item)
+	override void CopyOldPropertiesToNew(notnull EntityAI old_item, EntityAI new_item)
 	{
 		super.CopyOldPropertiesToNew(old_item, new_item);
 
@@ -212,6 +212,8 @@ enum ThrowEntityFlags
 
 class MiscGameplayFunctions
 {
+	static const float OBJECT_OBSTRUCTION_MIN_DISTANCE_SQ = 0.0625; //! squared distance below which an obstruction raycast is pointless, nothing can fit in between [default 0.25m]
+	
 	//! truncate float to specified precision
 	static float Truncate(float value, int decimals = 2)
 	{
@@ -474,42 +476,70 @@ class MiscGameplayFunctions
 	//!Spawns multiple piles of stackable ItemBase objects on ground (intended for generic use)
 	static array<ItemBase> CreateItemBasePiles(string item_name, vector ground_position, float quantity, float health, bool floaty_spawn = false)
 	{
-		array<ItemBase>	item_piles;
-		float max_stack_size;
+		return CreateItemBasePilesEx(item_name, ground_position, quantity, health, floaty_spawn);
+	}
+
+	static array<ItemBase> CreateItemBasePilesEx(string itemName, vector groundPosition, float quantity, float health, bool floatySpawn = false, bool throwAfterSpawn = false)
+	{
+		array<ItemBase>	itemPiles;
+		float maxStackSize;
 		ItemBase pile;
 		
-		item_piles = new array<ItemBase>;
-		max_stack_size = g_Game.ConfigGetInt("cfgVehicles " + item_name + " varStackMax");
-		if( max_stack_size < 1)
-			max_stack_size = g_Game.ConfigGetInt("cfgVehicles " + item_name + " varQuantityMax");
-		if( max_stack_size < 1)
-			max_stack_size = 1;
+		itemPiles = new array<ItemBase>;
+		maxStackSize = g_Game.ConfigGetInt("cfgVehicles " + itemName + " varStackMax");
+		if( maxStackSize < 1)
+			maxStackSize = g_Game.ConfigGetInt("cfgVehicles " + itemName + " varQuantityMax");
+		if( maxStackSize < 1)
+			maxStackSize = 1;
 		
-		int full_piles_count = Math.Floor(quantity/max_stack_size);
-		int rest = quantity - (full_piles_count*max_stack_size);
+		int fullPilesCount = Math.Floor(quantity/maxStackSize);
+		int rest = quantity - (fullPilesCount * maxStackSize);
 		
-		for (int i = 0; i < full_piles_count; ++i)
+		for (int i = 0; i < fullPilesCount; ++i)
 		{
-			if (floaty_spawn)
-				pile = ItemBase.Cast(g_Game.CreateObjectEx(item_name, ground_position, ECE_CREATEPHYSICS|ECE_UPDATEPATHGRAPH));
+			if (floatySpawn)
+			{
+				pile = ItemBase.Cast(g_Game.CreateObjectEx(itemName, groundPosition, ECE_CREATEPHYSICS|ECE_UPDATEPATHGRAPH));
+			}
 			else
-				pile = ItemBase.Cast(g_Game.CreateObjectEx(item_name, ground_position, ECE_PLACE_ON_SURFACE));
-			pile.SetQuantity(max_stack_size);
+			{
+				pile = ItemBase.Cast(g_Game.CreateObjectEx(itemName, groundPosition, ECE_PLACE_ON_SURFACE));
+			}
+			
+			pile.SetQuantity(maxStackSize);
 			pile.SetHealth(health);
-			item_piles.Insert(pile);
+
+			if (throwAfterSpawn)
+			{
+				pile.ThrowPhysically(null, vector.Zero);
+			}
+
+			itemPiles.Insert(pile);
 		}
 		
 		if (rest > 0)
 		{
-			if (floaty_spawn)
-				pile = ItemBase.Cast(g_Game.CreateObjectEx(item_name, ground_position, ECE_CREATEPHYSICS|ECE_UPDATEPATHGRAPH));
+			if (floatySpawn)
+			{
+				pile = ItemBase.Cast(g_Game.CreateObjectEx(itemName, groundPosition, ECE_CREATEPHYSICS|ECE_UPDATEPATHGRAPH));
+			}
 			else
-				pile = ItemBase.Cast(g_Game.CreateObjectEx(item_name, ground_position, ECE_PLACE_ON_SURFACE));
+			{
+				pile = ItemBase.Cast(g_Game.CreateObjectEx(itemName, groundPosition, ECE_PLACE_ON_SURFACE));
+			}
+			
 			pile.SetQuantity(rest);
 			pile.SetHealth(health);
-			item_piles.Insert(pile);
+
+			if (throwAfterSpawn)
+			{
+				pile.ThrowPhysically(null, vector.Zero);
+			}
+
+			itemPiles.Insert(pile);
 		}
-		return item_piles;
+		
+		return itemPiles;
 	}
 	
 	//! creation method using raycast-dispersed positioning; ECE_TRACE not used as a result
@@ -723,6 +753,41 @@ class MiscGameplayFunctions
 			{ pos = player.GetBonePositionWS(headBoneIdx); }	
 	}
 
+	/*!
+		\brief Returns approximated height(from terrain) of head in WS which takes the player's stance into account
+		       Preferred method over GetHeadBonePos variant which can be expensive on perf
+		\param player Reference to player entity
+	*/
+	static float GetPlayerHeadHeight(notnull PlayerBase player)
+	{
+		if (player.IsPlayerInStance(DayZPlayerConstants.STANCEMASK_ERECT|DayZPlayerConstants.STANCEMASK_RAISEDERECT))
+			return PlayerConstants.HEAD_HEIGHT_ERECT;
+		if (player.IsPlayerInStance(DayZPlayerConstants.STANCEMASK_CROUCH|DayZPlayerConstants.STANCEMASK_RAISEDCROUCH))
+			return PlayerConstants.HEAD_HEIGHT_CROUCH;
+		if (player.IsPlayerInStance(DayZPlayerConstants.STANCEMASK_PRONE|DayZPlayerConstants.STANCEMASK_RAISEDPRONE))
+			return PlayerConstants.HEAD_HEIGHT_PRONE;
+		
+		return PlayerConstants.HEAD_HEIGHT_ERECT;
+	}
+
+	/*!
+		\brief Returns approximated position of head in WS which takes the player's stance into account
+		       Preferred method over GetHeadBonePos variant which can be expensive on perf
+		\param player Reference to player entity
+	*/
+	static vector GetPlayerHeadPosition(notnull PlayerBase player)
+	{
+		float headHeight = GetPlayerHeadHeight(player);
+		vector playerPosition = player.GetPosition();
+		vector headPosition = Vector(
+			playerPosition[0],
+			playerPosition[1] + headHeight,
+			playerPosition[2],
+		);
+		
+		return headPosition;
+	}
+
 	static vector GetHeadingVector(notnull PlayerBase player)
 	{
 		vector dir = vector.Zero;
@@ -807,10 +872,14 @@ class MiscGameplayFunctions
 		{
 			if ( player_target )
 			{
-				if (player_target.IsAlive())
-					MiscGameplayFunctions.TurnItemIntoItemEx(player_target, new ReplaceAndDestroyLambdaEx(current_item, new_item_name, player_target, type));
-				else
+				if (!player_target.IsAlive() || destroy)
+				{
 					MiscGameplayFunctions.TurnItemIntoItemEx(player_source, new DestroyItemInCorpsesHandsAndCreateNewOnGndLambda(current_item, new_item_name, player_target, type));
+				}
+				else
+				{
+					MiscGameplayFunctions.TurnItemIntoItemEx(player_target, new ReplaceAndDestroyLambdaEx(current_item, new_item_name, player_target, type));
+				}
 			}
 			else
 			{
@@ -868,100 +937,124 @@ class MiscGameplayFunctions
 		output = output.Substring(0,Math.Clamp(max_length,0,output.Length()));
 		return output;
 	}
-	
-	// deprecated - dont use
-	static bool ComplexBuildCollideCheckClient( PlayerBase player, ActionTarget target, ItemBase item, string partName = "" )
+
+	//! Returns true when the player stands on the opposite side of memPointEndName relative to memPointStartName (angle exceeds toleranceAngle)
+	//! Intentionally returns true (no restriction) when the check cannot be performed (missing player/entity or memory points)
+	//! Callers where a failed check must deny access have to verify the preconditions (e.g. MemoryPointExists) themselves
+	static bool MemPointDirectionalCheck(PlayerBase player, EntityAI targetEnt, string memPointStartName, string memPointEndName, float toleranceAngle = Math.PI_HALF)
 	{
+		if (player && targetEnt && memPointEndName != "" && targetEnt.MemoryPointExists(memPointEndName) && memPointStartName != "" && targetEnt.MemoryPointExists(memPointStartName))
+		{
+			vector memPointEndPos = targetEnt.ModelToWorld(targetEnt.GetMemoryPointPos(memPointEndName));
+			vector memPointStartPos = targetEnt.ModelToWorld(targetEnt.GetMemoryPointPos(memPointStartName));
+			vector playerPosition = player.GetPosition();
+			vector playerHeadPos = MiscGameplayFunctions.GetPlayerHeadPosition(player);
+			vector playerDir = vector.Direction(playerHeadPos, memPointStartPos);
+			playerDir.Normalize();
+			vector memDir = vector.Direction(memPointStartPos, memPointEndPos);
+			memDir.Normalize();
+			
+			/*
+			vector dbgPos = playerPosition;
+			Debug.DrawArrow(dbgPos, dbgPos + playerDir, 0.15, COLOR_YELLOW);
+			Debug.DrawArrow(memPointStartPos, memPointStartPos + memDir, 0.15, COLOR_GREEN);
+			
+			Debug.DrawSphere(memPointStartPos, 0.05, COLOR_YELLOW, ShapeFlags.TRANSP|ShapeFlags.NOOUTLINE);
+			Debug.DrawSphere(dbgPos, 0.05, COLOR_RED, ShapeFlags.TRANSP|ShapeFlags.NOOUTLINE);
+			*/
+			
+			return GenericDirectionalCheck(playerDir, memDir, toleranceAngle);
+		}
+		
 		return true;
+	}
+
+	//! just compares the angle
+	static bool GenericDirectionalCheck(vector dir1, vector dir2, float toleranceAngle)
+	{
+		float angleRad = Math.Acos(dir1 * dir2);
+		
+		//Print(angleRad);
+		//Print("result: " + (angleRad > toleranceAngle));
+
+		return angleRad > toleranceAngle;
 	}
 	
 	static bool ComplexBuildCollideCheckClient( PlayerBase player, ActionTarget target, ItemBase item, int constraction_index )
 	{
-		BaseBuildingBase base_building = BaseBuildingBase.Cast( target.GetObject() );
-		if (base_building)
+		EntityAI ent;
+		if (Class.CastTo(ent,target.GetObject()) && ent.CanUseConstruction())
 		{
-			Construction construction = base_building.GetConstruction();
-			if (construction && BuildCondition( player, target, item, false, constraction_index ))
+			ConstructionBase construction = ConstructionBase.Cast(ent.GetConstructionBasic());
+			ConstructionActionData constructionActionData = player.GetConstructionActionData();
+			if (construction && BuildCondition(player, target, item, false, constraction_index))
 			{
-				ConstructionActionData construction_action_data = player.GetConstructionActionData();
 				string partName;
-				if ( item )
+				if (item)
 				{
-					partName = construction_action_data.GetBuildPartAtIndex(constraction_index).GetPartName();
+					partName = constructionActionData.GetBuildPartAtIndex(constraction_index).GetPartName();
 				}
-				else
+				
+				#ifdef DIAG_DEVELOPER
+				ConstructionPart debugPart = constructionActionData.GetBuildPartAtIndex(constraction_index);
+				if (debugPart)
+					construction.UpdateItemFallDebugVisuals(debugPart.GetPartName());
+				#endif
+					
+				BaseBuildingBase baseBuilding;
+				if (Class.CastTo(baseBuilding,ent))
 				{
-					partName = construction_action_data.GetBuildPartNoToolAtIndex(constraction_index).GetPartName();
+					bool boo;
+					if (baseBuilding.PerformRoofCheckForBase(partName,player,boo) && boo)
+						return false;
 				}
-				bool boo;
-				if (base_building.PerformRoofCheckForBase(partName,player,boo) && boo)
-					return false;
-				if ( player.IsPlacingLocal() || player.IsPlacingServer() )
+				
+				if (player.IsPlacingLocal() || player.IsPlacingServer())
 					return false;
 				
-				/*float distance_root = vector.DistanceSq(target.GetCursorHitPos(), player.GetPosition());
-
-				if (!CfgGameplayHandler.GetDisableDistanceCheck() && distance_root < UAMaxDistances.BASEBUILDING_SHORT)
-				{
-					return false;
-				} */
-				return !construction.IsColliding( partName );
+				CollisionCheckData checkData = new CollisionCheckData;
+				checkData.m_PartName = partName;
+				
+				return !construction.IsCollidingEx(checkData);
 			}
 		}
 		return false;
 	}
-	
-	// deprecated - dont use
-	static bool BuildCondition( PlayerBase player, ActionTarget target, ItemBase item, bool camera_check )
-	{
-		return true;
-	}
-	
+
 	static bool BuildCondition( PlayerBase player, ActionTarget target, ItemBase item, bool camera_check, int constraction_index )
-	{	
-		Object targetObject = target.GetObject();
-		if ( targetObject && targetObject.CanUseConstruction() )
+	{
+		EntityAI ent = EntityAI.Cast(target.GetObject());
+		if (ent && ent.CanUseConstruction())
 		{
-			BaseBuildingBase base_building = BaseBuildingBase.Cast( targetObject );
-			ConstructionActionData construction_action_data = player.GetConstructionActionData();
-			construction_action_data.SetTarget( targetObject );
+			ConstructionActionData constructionActionData = player.GetConstructionActionData();
+			constructionActionData.SetTarget(ent);
 			
-			ConstructionPart constrution_part;
-			if ( item )
+			ConstructionPart part;
+			if (item)
 			{
-				constrution_part = construction_action_data.GetBuildPartAtIndex(constraction_index);
+				part = constructionActionData.GetBuildPartAtIndex(constraction_index);
 			}
 			else
 			{
-				constrution_part = construction_action_data.GetBuildPartNoToolAtIndex(constraction_index);
+				part = constructionActionData.GetBuildPartHandsGenericAtIndex(constraction_index);
 			}
-
-			//Debug
-			/*
-			if ( constrution_part )
-			{
-				Construction construction = base_building.GetConstruction();	
-				construction.IsColliding( constrution_part.GetPartName() );
-			}
-			*/
 			
-			if ( constrution_part )
+			if (part)
 			{
 				//camera and position checks
-				bool position_check = ( base_building.MustBeBuiltFromOutside() && !base_building.IsPlayerInside(player, constrution_part.GetMainPartName()) ) || ( !base_building.MustBeBuiltFromOutside() && base_building.IsPlayerInside(player, constrution_part.GetMainPartName()) );
-				if ( position_check && !player.GetInputController().CameraIsFreeLook() )
+				
+				BaseBuildingBase baseBuilding;
+				if (Class.CastTo(baseBuilding,ent) && baseBuilding.MustBeBuiltFromOutside() && baseBuilding.IsPlayerInsideEx(player, part.GetMainPartName()))
+					return false;
+				
+				//Camera check (client-only)
+				if (camera_check && !GetGame().IsDedicatedServer())
 				{
-					//Camera check (client-only)
-					if ( camera_check )
-					{
-						if ( g_Game && ( !g_Game.IsDedicatedServer() ) )
-						{
-							return !base_building.IsFacingCamera( constrution_part.GetMainPartName() );
-						}
-					}
-					
-					return true;
+					if (ent.IsFacingCamera(part.GetMainPartName()))
+						return false;
 				}
+				
+				return !player.GetInputController().CameraIsFreeLook();
 			}
 		}
 		
@@ -1015,6 +1108,43 @@ class MiscGameplayFunctions
 		int contact_component;
 		
 		return DayZPhysics.RaycastRV(from, to, contact_pos, contact_dir, contact_component, NULL, NULL, entity, false, false, geometry,0.25);
+	}
+
+	static bool IsUnder(EntityAI entity, array<typename> excludedTypes, out Object hitObj, float height = GameConstants.ROOF_CHECK_RAYCAST_DIST, int geometry = ObjIntersectIFire)
+	{
+		vector from;
+		vector to;
+		
+		IsUnderRoofFromToCalculation(entity, from, to, height);
+		
+		vector contactPos;
+		vector contactDir;
+		int contactComponent;
+		set<Object> objects = new set<Object>;
+		
+		if (DayZPhysics.RaycastRV(from, to, contactPos, contactDir, contactComponent, objects, NULL, entity, false, false, geometry, 0.25))
+		{
+			for (int i = 0; i < objects.Count(); ++i)
+			{
+				Object obj = objects.Get(i);
+				if (!obj)
+					continue;
+				
+				if (excludedTypes && excludedTypes.Count())
+				{
+					foreach (typename excludedType: excludedTypes)
+					{
+						if (obj.IsInherited(excludedType))
+							return false;
+					}
+				}
+			
+				hitObj = obj;
+				return true;
+			}
+		}
+		
+		return false;
 	}
 
 	// cooking equipment effects (get position for steam particle)
@@ -1085,10 +1215,10 @@ class MiscGameplayFunctions
 	
 	static vector GetRandomizedPositionVerifiedPlayer(Man player, float distance, float radius, Object ignore)
 	{
-		vector startPos;
-		MiscGameplayFunctions.GetHeadBonePos(PlayerBase.Cast(player),startPos);
-		vector targetPos = player.GetPosition() + (player.GetDirection() * distance);
-		return GetRandomizedPositionVerified(startPos,targetPos,radius,ignore);
+		vector playerPosition = player.GetPosition();
+		vector playerHeadPos = MiscGameplayFunctions.GetPlayerHeadPosition(PlayerBase.Cast(player));
+		vector targetPos = playerPosition + (player.GetDirection() * distance);
+		return GetRandomizedPositionVerified(playerHeadPos, targetPos, radius, ignore);
 	}
 	
 	static void DropAllItemsInInventoryInBounds(ItemBase ib, vector halfExtents)
@@ -1121,6 +1251,11 @@ class MiscGameplayFunctions
 	
 	static void ThrowAllItemsInInventory(notnull EntityAI parent, int flags)
 	{
+		ThrowAllItemsInInventoryEx(parent, flags, -GetVelocity(parent));
+	}
+
+	static void ThrowAllItemsInInventoryEx(notnull EntityAI parent, int flags, vector force)
+	{
 		vector position = parent.GetPosition();
 		vector orientation = parent.GetOrientation();
 		vector rotation_matrix[3];
@@ -1137,18 +1272,24 @@ class MiscGameplayFunctions
 		int count, i;
 		//atts
 		GameInventory parentInventory = parent.GetInventory();
-		count = parentInventory.AttachmentCount();
-		for (i = 0; i < count; ++i)
+		if (parentInventory)
 		{
-			ents.Insert(parentInventory.GetAttachmentFromIndex(i));
+			count = parentInventory.AttachmentCount();
+			for (i = 0; i < count; ++i)
+			{
+				ents.Insert(parentInventory.GetAttachmentFromIndex(i));
+			}
 		}
 		
 		//cargo
 		CargoBase parentCargo = parentInventory.GetCargo();
-		count = parentCargo.GetItemCount();
-		for (i = 0; i < count; ++i)
+		if (parentCargo)
 		{
-			ents.Insert(parentCargo.GetItem(i));
+			count = parentCargo.GetItemCount();
+			for (i = 0; i < count; ++i)
+			{
+				ents.Insert(parentCargo.GetItem(i));
+			}
 		}
 		
 		//now throw them all
@@ -1299,116 +1440,31 @@ class MiscGameplayFunctions
 	    return obj.IsTransport() || obj.CanUseConstruction();
 	}
 	
-	//! group objects that are close to each other together	
+	//! filters out objects obstructed from 'origin' by a raycast per object
 	static void FilterObstructedObjectsByGrouping(vector origin, float range, float distanceDelta, array<Object> objects, array<Object> obstructingObjects, out array<Object> filteredObjects, bool doDistanceCheck = false, bool checkIfDistanceCanBeIgnored = false, float maxDist = 0)
 	{
-		array<Object> vicinityObjects= new array<Object>;
-		vicinityObjects.Copy(objects);
-
-		int i = 0;
-		int j = 0;
-		int k = 0;			
-		int mCount = vicinityObjects.Count();
-		
 		if (!filteredObjects)
 			filteredObjects = new array<Object>();
-		
-		// Remove objects that are too far from the player anyways
-		if ( doDistanceCheck )
+
+		if (!objects)
+			return;
+
+		int count = objects.Count();
+		float maxDistSq = maxDist * maxDist;
+
+		IsObjectObstructedCache cache = new IsObjectObstructedCache(origin, count);
+		for (int i = 0; i < count; ++i)
 		{
-			for ( i = vicinityObjects.Count() - 1; i >= 0; --i )
-			{
-				Object obj = vicinityObjects[i];
-				if ( obj && !CanIgnoreDistanceCheck( obj ) && vector.DistanceSq(origin, obj.GetPosition()) > maxDist * maxDist )
-					vicinityObjects.Remove(i);
-			}
-		}
+			Object obj = objects[i];
+			if (!obj)
+				continue;
 
-		// Sort obstructingObjects to have the furthest one first
-		array<Object> sortedObstructingObjects = new array<Object>();
-		array<float> distanceHelper = new array<float>();
-		array<float> distanceHelperUnsorted = new array<float>();
-		float distance, dist1, dist2;
+			// Skip objects that are too far from the player anyways
+			if (doDistanceCheck && !CanIgnoreDistanceCheck(obj) && vector.DistanceSq(origin, obj.GetPosition()) > maxDistSq)
+				continue;
 
-		for ( i = 0; i < obstructingObjects.Count(); ++i )
-		{
-			distance = vector.DistanceSq(obstructingObjects[i].GetWorldPosition(), origin);
-			distanceHelper.Insert(distance);
-		}
-
-		distanceHelperUnsorted.Copy(distanceHelper);
-		distanceHelper.Sort();
-
-		for ( i = distanceHelper.Count() - 1; i >= 0; --i )
-			sortedObstructingObjects.Insert(obstructingObjects[distanceHelperUnsorted.Find(distanceHelper[i])]);
-
-		array<ref array<Object>> tempGroups = new array<ref array<Object>>();
-		array<ref array<Object>> objectGroups = new array<ref array<Object>>();
-		array<Object> group;
-		
-		float cos = Math.Cos(90);
-		float sin = Math.Sin(90);
-
-		// Iterate through sorted obstructingObjects
-		for ( i = 0; i < sortedObstructingObjects.Count(); ++i )
-		{
-			Object obstrObj = sortedObstructingObjects[i];
-			vector worldPos = obstrObj.GetWorldPosition();
-			vector min, max;
-			vector minMax[2];
-			if ( obstrObj.GetCollisionBox(minMax) )
-			{
-				min = minMax[0];
-				max = minMax[1];
-				max = max * (obstrObj.GetOrientation() * range);
-
-				vector center, dx, dy, dz, half;
-				center = (min + max) * 0.5;
-				dz = obstrObj.GetOrientation();
-				dx = vector.RotateAroundZero(dz, vector.Up, cos, sin);
-				dy = vector.RotateAroundZero(dz, vector.Aside, cos, sin);
-				half = (max - min) * 0.5;
-				half = Vector(Math.AbsFloat(half[0]), Math.AbsFloat(half[1]), Math.AbsFloat(half[2]));
-
-				group = new array<Object>();
-
-				// Group objects within the above box
-				for ( j = vicinityObjects.Count() - 1; j >= 0; --j )
-				{
-					Object vicObj = vicinityObjects[j];
-					if ( vicObj )
-					{
-						vector d = vicObj.GetWorldPosition() - worldPos + center;
-						if ( Math.AbsFloat(vector.Dot(d, dx)) <= half[0] && Math.AbsFloat(vector.Dot(d, dy)) <= half[1] && Math.AbsFloat(vector.Dot(d, dz)) <= half[2] )
-						{
-							group.Insert(vicObj);
-							vicinityObjects.Remove(j);
-						}
-					}
-				}
-
-				if ( group.Count() > 0 )
-					tempGroups.Insert(group);
-			}
-		}
-
-		// Go through the objects grouped by obstruction to split them by distance too
-		for ( i = 0; i < tempGroups.Count(); ++i )
-			SplitArrayIntoGroupsByDistance(tempGroups[i], objectGroups, distanceDelta);
-
-		// Split initial groups by distance
-		SplitArrayIntoGroupsByDistance(vicinityObjects, objectGroups, distanceDelta);
-
-		// Raycast items in groups (previously sample item in group which is not enough, sadly)
-		IsObjectObstructedCache cache = new IsObjectObstructedCache(origin, mCount);
-		foreach (array<Object> objectGroup : objectGroups)
-		{
-			foreach (Object filteredObject : objectGroup)
-			{
-				if (!IsObjectObstructedEx(filteredObject, cache))
-					filteredObjects.Insert(filteredObject);
-			}
-
+			if (!IsObjectObstructedEx(obj, cache))
+				filteredObjects.Insert(obj);
 		}
 
 		cache.ClearCache();
@@ -1450,8 +1506,8 @@ class MiscGameplayFunctions
 	
 	static bool IsObjectObstructed(Object object, bool doDistanceCheck = false, vector distanceCheckPos = "0 0 0", float maxDist = 0)
 	{
-		vector rayStart;
-		MiscGameplayFunctions.GetHeadBonePos(PlayerBase.Cast(g_Game.GetPlayer()), rayStart);
+		PlayerBase player = PlayerBase.Cast(g_Game.GetPlayer());
+		vector rayStart = MiscGameplayFunctions.GetPlayerHeadPosition(player);
 		IsObjectObstructedCache cache = new IsObjectObstructedCache(rayStart, 1);
 
 		return IsObjectObstructedEx(object, cache, doDistanceCheck, distanceCheckPos, maxDist);
@@ -1467,7 +1523,18 @@ class MiscGameplayFunctions
 			return true;
 
 		cache.ObjectCenterPos = object.GetCenter();
-		
+
+		if (maxDist > 0 && vector.DistanceSq(cache.RaycastStart, cache.ObjectCenterPos) > maxDist * maxDist)
+		{
+			vector rayDir = cache.ObjectCenterPos - cache.RaycastStart;
+			rayDir.Normalize();
+			cache.RaycastEnd = cache.RaycastStart + rayDir * maxDist;
+		}
+		else
+		{
+			cache.RaycastEnd = cache.ObjectCenterPos;
+		}
+
 		return IsObjectObstructedFilterEx(object, cache, player);
 	}
  	
@@ -1475,7 +1542,7 @@ class MiscGameplayFunctions
 	{
 		if (object.CanProxyObstruct())
 		{
-			RaycastRVParams rayInput = new RaycastRVParams(cache.RaycastStart, cache.ObjectCenterPos, player);
+			RaycastRVParams rayInput = new RaycastRVParams(cache.RaycastStart, cache.RaycastEnd, player);
 			DayZPhysics.RaycastRVProxy(rayInput, cache.HitProxyObjects);				
 			if (cache.HitProxyObjects)
 			{
@@ -1531,14 +1598,35 @@ class MiscGameplayFunctions
 	//! groups 'RaycastRVProxy' and 'RaycastRV' approaches into one method, allowes for comprehensive geometry override, if desired
 	static bool IsObjectObstructedFilterEx(Object object, IsObjectObstructedCache cache, PlayerBase player, int geometryTypeOverride = -1)
 	{
-		//first proxy geometries
-		RaycastRVParams rayInput = new RaycastRVParams(cache.RaycastStart, cache.ObjectCenterPos, player);
-		rayInput.flags = CollisionFlags.ALLOBJECTS;
-		if (geometryTypeOverride != -1)
-			rayInput.type = geometryTypeOverride; //default 'ObjIntersectView'
-		DayZPhysics.RaycastRVProxy(rayInput, cache.HitProxyObjects);
+		//nothing can fit between the ray start and the target, skip the raycasts entirely
+		if (vector.DistanceSq(cache.RaycastStart, cache.ObjectCenterPos) < OBJECT_OBSTRUCTION_MIN_DISTANCE_SQ)
+			return false;
+		
 		int count;
 		int i;
+		
+		//first, regular raycast (cheaper)
+		int geometry = ObjIntersectFire; //default for the RV raycast
+		if (geometryTypeOverride != -1)
+			geometry = geometryTypeOverride;
+
+		//ALLOBJECTS colllision check here
+		DayZPhysics.RaycastRV(cache.RaycastStart, cache.RaycastEnd, cache.ObjectContactPos, cache.ObjectContactDir, cache.ContactComponent, cache.HitObjects, object, player, false, false, geometry, 0.0, CollisionFlags.ALLOBJECTS);
+		count = cache.HitObjects.Count();
+		for (i = 0; i < count; ++i)
+		{
+			Object hitObject = cache.HitObjects[i];
+			if (hitObject && hitObject.CanObstruct())
+				return true;
+		}
+		
+		//second, proxy geometries
+		RaycastRVParams rayInput = cache.GetRaycastParams(cache.RaycastStart, cache.RaycastEnd, player);
+		if (geometryTypeOverride != -1)
+			rayInput.type = geometryTypeOverride; //default 'ObjIntersectView'
+	
+		//! uses the NEARESTCONTACT collision check from RaycastParams
+		DayZPhysics.RaycastRVProxy(rayInput, cache.HitProxyObjects);
 		
 		if (cache.HitProxyObjects)
 		{
@@ -1546,9 +1634,10 @@ class MiscGameplayFunctions
 			Object parent;
 			for (i = 0; i < count; ++i)
 			{
-				if (cache.HitProxyObjects[i].hierLevel > 0) //parent has to exist, skipping nullcheck
+				RaycastRVResult result = cache.HitProxyObjects[i];
+				if (result.hierLevel > 0) //parent has to exist, skipping nullcheck
 				{
-					parent = cache.HitProxyObjects[i].parent;
+					parent = result.parent;
 					if (parent && !parent.IsMan() && parent.CanProxyObstruct())
 					{
 						if (parent != object || (parent == object && object.CanProxyObstructSelf()))
@@ -1556,18 +1645,6 @@ class MiscGameplayFunctions
 					}	
 				}
 			}
-		}
-		
-		//second, regular raycast
-		int geometry = ObjIntersectFire; //default for the RV raycast
-		if (geometryTypeOverride != -1)
-			geometry = geometryTypeOverride;
-		DayZPhysics.RaycastRV(cache.RaycastStart, cache.ObjectCenterPos, cache.ObjectContactPos, cache.ObjectContactDir, cache.ContactComponent, cache.HitObjects, object, g_Game.GetPlayer(), false, false, geometry, 0.0, CollisionFlags.ALLOBJECTS);
-		count = cache.HitObjects.Count();
-		for (i = 0; i < count; ++i)
-		{
-			if (cache.HitObjects[i].CanObstruct())
-				return true;
 		}
 		
 		return false;
@@ -1749,19 +1826,19 @@ class MiscGameplayFunctions
 		
 		return false;
 	}
-	
-	static void GenerateAINoiseAtPosition(vector position, float lifeTime, NoiseParams noiseParams)
+
+	static void GenerateAINoiseAtPositionEx(notnull Object source, float lifeTime, NoiseParams noiseParams)
 	{
 		if (g_Game.IsServer())
 		{
 			NoiseSystem noise = g_Game.GetNoiseSystem();
 			if (noise)
 			{
-				noise.AddNoiseTarget(position, lifeTime, noiseParams, NoiseAIEvaluate.GetNoiseReduction(g_Game.GetWeather()));
+				noise.AddNoiseTarget(source.GetPosition(), lifeTime, noiseParams);
 			}
 		}
 	}
-
+	
 	static float GetMinValue(array<float> pArray)
 	{
 		float minValue = 0.0;
@@ -1907,6 +1984,47 @@ class MiscGameplayFunctions
 		
 		return value;
 	}
+
+	static bool ComponentIdxContainsSelection(Object obj, int compIdx, string selName)
+	{
+		array<string> compNames = new array<string>;
+		obj.GetActionComponentNameList(compIdx, compNames);
+		foreach (string selection : compNames)
+		{
+			if (selection.Contains(selName))
+				return true;
+		}
+		
+		return false;
+	}
+
+	////////////////////////////
+	// deprecated - do not use
+	////////////////////////////
+	[Obsolete("Obsolete collision checking method, use the other 'ComplexBuildCollideCheckClient'")]
+	static bool ComplexBuildCollideCheckClient( PlayerBase player, ActionTarget target, ItemBase item, string partName = "" )
+	{
+		return true;
+	}
+	
+	[Obsolete("Obsolete collision checking method, use the other 'BuildCondition'")]
+	static bool BuildCondition( PlayerBase player, ActionTarget target, ItemBase item, bool camera_check )
+	{
+		return true;
+	}
+
+	[Obsolete("Use MiscGameplayFunctions.GenerateAINoiseAtPositionEx instead!")]
+	static void GenerateAINoiseAtPosition(vector position, float lifeTime, NoiseParams noiseParams)
+	{
+		if (GetGame().IsServer())
+		{
+			NoiseSystem noise = GetGame().GetNoiseSystem();
+			if (noise)
+			{
+				noise.AddNoiseTarget(position, lifeTime, noiseParams);
+			}
+		}
+	}
 }
 
 class DestroyItemInCorpsesHandsAndCreateNewOnGndLambda : ReplaceAndDestroyLambda
@@ -1941,11 +2059,14 @@ class IsObjectObstructedCache // Pretending this is a struct
 	
 	// Inside data
 	vector ObjectCenterPos = "0 0 0";
+	vector RaycastEnd = "0 0 0"; // actual raycast end point, optionally clamped to the caller-provided maxDist from RaycastStart; ObjectCenterPos remains the true, unclamped object center
 	vector ObjectContactPos = "0 0 0";
 	vector ObjectContactDir = "0 0 0";
 	int ContactComponent = -1;
-	ref array<ref RaycastRVResult> HitProxyObjects = new array<ref RaycastRVResult>;	
-	ref set<Object> HitObjects = new set<Object>;
+	ref array<ref RaycastRVResult> HitProxyObjects = new array<ref RaycastRVResult>();	
+	ref set<Object> HitObjects = new set<Object>();
+	//! reused between calls
+	private ref RaycastRVParams RaycastParams = new RaycastRVParams("0 0 0", "0 0 0");
 	
 	void IsObjectObstructedCache(vector rayCastStart, int totalObjects)
 	{
@@ -1953,10 +2074,28 @@ class IsObjectObstructedCache // Pretending this is a struct
 		TotalObjects = totalObjects;
 	}
 	
+	//! returns the cached instance re-initialized to the given values, instead of allocating a new one
+	RaycastRVParams GetRaycastParams(vector begPos, vector endPos, Object ignore)
+	{
+		RaycastParams.begPos = begPos;
+		RaycastParams.endPos = endPos;
+		RaycastParams.ignore = ignore;
+		RaycastParams.with = null;
+		RaycastParams.radius = 0.0;
+		//deliberate: the proxy obstruction check only needs the nearest contact, so its result loop is single-iteration
+		RaycastParams.flags = CollisionFlags.NEARESTCONTACT;
+		RaycastParams.type = ObjIntersectView;
+		RaycastParams.sorted = false;
+		RaycastParams.groundOnly = false;
+		
+		return RaycastParams;
+	}
+	
 	// Only inside data
 	void ClearCache()
-	{		
+	{
 		ObjectCenterPos = "0 0 0";
+		RaycastEnd = "0 0 0";
 		ObjectContactPos = "0 0 0";
 		ObjectContactDir = "0 0 0";
 		ContactComponent = -1;

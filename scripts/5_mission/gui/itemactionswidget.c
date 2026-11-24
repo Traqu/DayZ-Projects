@@ -1,5 +1,10 @@
 class ItemActionsWidget extends ScriptedWidgetEventHandler
 {
+	//! arrow appearance when the action category is not the one currently controlled by the mouse scroll
+	//! 0.235 =~ 60/255
+	protected const float				ARROW_ALPHA_NOT_SELECTED = 0.235;
+	protected const float				ARROW_ALPHA_SELECTED = 1.0;
+
 	protected PlayerBase 				m_Player;
 	protected EntityAI 					m_EntityInHands;
 	protected ActionBase				m_Interact;
@@ -15,6 +20,7 @@ class ItemActionsWidget extends ScriptedWidgetEventHandler
 	protected int						m_ContinuousInteractActionsNum;
 	protected int						m_ItemActionsNum;
 	protected int						m_ContinuousItemActionsNum;
+	protected typename					m_SelectedActionCategory;
 	protected bool 						m_HealthEnabled;
 	protected bool						m_QuantityEnabled;
 	
@@ -151,9 +157,10 @@ class ItemActionsWidget extends ScriptedWidgetEventHandler
 			SetWeaponModeAndZeroing("ia_item_subdesc", "ia_item_subdesc_up", "ia_item_subdesc_down", true);
 		}
 		//! transmitter/PAS specific
-		else if (m_EntityInHands && m_EntityInHands.IsTransmitter())
+		else if (m_EntityInHands && m_EntityInHands.IsTransmitter() && !m_EntityInHands.IsKindOf("Megaphone"))
 		{
-			SetRadioFrequency(GetRadioFrequency(), "ia_item_subdesc", "ia_item_subdesc_up", "ia_item_subdesc_down", m_QuantityEnabled);
+			string frequency = GetRadioFrequency();
+			SetRadioFrequency(frequency, "ia_item_subdesc", "ia_item_subdesc_up", "ia_item_subdesc_down", frequency.Length() > 0);
 			GetItemQuantity(quantityType, quantityCurrent, quantityMin, quantityMax);
 			SetItemQuantity(quantityType, quantityCurrent, quantityMin, quantityMax, "ia_item", "ia_item_quantity_pb", "ia_item_quantity_text", true);
 		}
@@ -255,6 +262,8 @@ class ItemActionsWidget extends ScriptedWidgetEventHandler
 		m_ContinuousInteractActionsNum = m_AM.GetPossibleActionCount(ContinuousInteractActionInput);
 		m_ItemActionsNum = m_AM.GetPossibleActionCount(DefaultActionInput);
 		m_ContinuousItemActionsNum = m_AM.GetPossibleActionCount(ContinuousDefaultActionInput);
+
+		m_SelectedActionCategory = m_AM.GetSelectedActionCategory();
 	}
 
 	protected void GetEntityInHands()
@@ -651,8 +660,10 @@ class ItemActionsWidget extends ScriptedWidgetEventHandler
 
 		widget = m_Root.FindAnyWidget(multiActionsWidget);
 		widget.Show(m_InteractActionsNum > 1);
+		if (m_InteractActionsNum > 1)
+			SetMultipleActionArrowsState(widget, "ia_interact", m_SelectedActionCategory == InteractActionInput);
 	}
-	
+
 	//! shows arrows near the interact action if there are more than one available
 	protected void SetMultipleContinuousInteractAction(string multiActionsWidget)
 	{
@@ -660,16 +671,20 @@ class ItemActionsWidget extends ScriptedWidgetEventHandler
 
 		widget = m_Root.FindAnyWidget(multiActionsWidget);
 		widget.Show(m_ContinuousInteractActionsNum > 1);
+		if (m_ContinuousInteractActionsNum > 1)
+			SetMultipleActionArrowsState(widget, "ia_continuous_interact", m_SelectedActionCategory == ContinuousInteractActionInput);
 	}
-	
+
 	protected void SetMultipleItemAction(string multiActionsWidget)
 	{
 		Widget widget;
 
 		widget = m_Root.FindAnyWidget(multiActionsWidget);
 		widget.Show(m_ItemActionsNum > 1);
+		if (m_ItemActionsNum > 1)
+			SetMultipleActionArrowsState(widget, "ia_single", m_SelectedActionCategory == DefaultActionInput);
 	}
-	
+
 	//! shows arrows near the interact action if there are more than one available
 	protected void SetMultipleContinuousItemAction(string multiActionsWidget)
 	{
@@ -677,6 +692,28 @@ class ItemActionsWidget extends ScriptedWidgetEventHandler
 
 		widget = m_Root.FindAnyWidget(multiActionsWidget);
 		widget.Show(m_ContinuousItemActionsNum > 1);
+		if (m_ContinuousItemActionsNum > 1)
+			SetMultipleActionArrowsState(widget, "ia_continuous", m_SelectedActionCategory == ContinuousDefaultActionInput);
+	}
+
+	//! dims the arrows of a category which is not the one currently controlled by the scroll wheel
+	protected void SetMultipleActionArrowsState(Widget multiActionsWidget, string arrowWidgetPrefix, bool selected)
+	{
+		if (!multiActionsWidget)
+			return;
+
+		float alpha = ARROW_ALPHA_NOT_SELECTED;
+		if (selected)
+			alpha = ARROW_ALPHA_SELECTED;
+
+		SetArrowAlpha(multiActionsWidget.FindAnyWidget(arrowWidgetPrefix + "_mtl_up"), alpha);
+		SetArrowAlpha(multiActionsWidget.FindAnyWidget(arrowWidgetPrefix + "_mtl_down"), alpha);
+	}
+
+	protected void SetArrowAlpha(Widget arrow, float alpha)
+	{
+		if (arrow)
+			arrow.SetAlpha(alpha);
 	}
 	
 	protected void SetInteractActionIcon(string actionWidget, string actionIconFrameWidget, string actionIconWidget, string actionIconTextWidget)

@@ -171,7 +171,7 @@ class ActionFishingNew: ActionContinuousBase
 	override void CreateConditionComponents()  
 	{
 		m_ConditionItem 	= new CCINonRuined();
-		m_ConditionTarget 	= new CCTWaterSurfaceEx(30, LIQUID_SALTWATER|LIQUID_FRESHWATER);
+		m_ConditionTarget 	= new CCTLiquid(LIQUID_SALTWATER | LIQUID_FRESHWATER, UAMaxDistances.FISHING, UAMaxDistances.FISHING, SurfaceDetectionType.Roadway, true);
 	}
 	
 	override bool HasTarget()
@@ -191,9 +191,14 @@ class ActionFishingNew: ActionContinuousBase
 	
 	override bool ActionCondition(PlayerBase player, ActionTarget target, ItemBase item )
 	{
-		ItemBase hook;
-		hook = ItemBase.Cast(item.FindAttachmentBySlotName("Hook"));
+		//! Other conditions are handled in CCTLiquid
+		CCTLiquid cctLiquid = CCTLiquid.Cast(m_ConditionTarget);
+		int waterSourceType = cctLiquid.GetWaterSourceType();
+		int liquidSourceType = cctLiquid.GetLiquidSourceType();
+		if (waterSourceType != EWaterSourceObjectType.NONE || liquidSourceType != ELiquidSourceObjectType.NONE)
+			return false;
 		
+		ItemBase hook = ItemBase.Cast(item.FindAttachmentBySlotName("Hook"));		
 		return hook && !hook.IsRuined() && !hook.IsPendingDeletion();
 	}
 	
@@ -318,11 +323,11 @@ class ActionFishingNew: ActionContinuousBase
 			int particleId = actionDataFishing.m_ContextData.GetResultParticleId();
 			if (actionDataFishing.m_SplashUniqueID < 0)
 			{
-				actionDataFishing.m_SplashUniqueID = SEffectManager.CreateParticleServer(actionDataFishing.m_Target.GetCursorHitPos(), new ParticleEffecterParameters("ParticleEffecter", EffecterBase.NOT_DEFINED_LIFESPAN, particleId));
+				actionDataFishing.m_SplashUniqueID = SEffectManager.CreateParticleServer(actionDataFishing.m_Target.GetCursorHitPos(), new ParticleEffecterParameters("FishingSplashEffecter", EffecterBase.NOT_DEFINED_LIFESPAN, particleId));
 			}
 			else
 			{
-				SEffectManager.ReinitParticleServer(actionDataFishing.m_SplashUniqueID, new ParticleEffecterParameters("ParticleEffecter", EffecterBase.NOT_DEFINED_LIFESPAN, particleId)); //reinit here, since particleId might differ
+				SEffectManager.ReinitParticleServer(actionDataFishing.m_SplashUniqueID, new ParticleEffecterParameters("FishingSplashEffecter", EffecterBase.NOT_DEFINED_LIFESPAN, particleId)); //reinit here, since particleId might differ
 				SEffectManager.ReactivateParticleServer(actionDataFishing.m_SplashUniqueID);
 			}
 		}
@@ -451,5 +456,31 @@ class ActionFishingNew: ActionContinuousBase
 		
 		int idx;
 		return action_data.m_ContextData.SpawnAndSetupCatch(idx,spawnPos);
+	}
+}
+
+class FishingSplashEffecter : ParticleEffecter
+{
+	override protected typename GetEffectTypename()
+	{
+		return FishingSplashEffect;
+	}
+}
+
+class FishingSplashEffect : EffectParticleGeneral
+{
+	void FishingSplashEffect()
+	{
+		Event_OnEffectStarted.Insert(PlaySound);
+	}
+	
+	void ~FishingSplashEffect()
+	{
+		Event_OnEffectStarted.Remove(PlaySound);
+	}
+	
+	protected void PlaySound()
+	{
+		SEffectManager.PlaySound("Fishing_splash_SoundSet", m_Position).SetAutodestroy(true);
 	}
 }
